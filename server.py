@@ -261,31 +261,41 @@ async def disconnect(sid):
     logger.info(f"大屏断开: {sid}")
 
 
-# 大屏截图缓存（wish_id -> base64 JPEG）
-display_screenshots = {}
+# 实时截图机制
+import asyncio
+screenshot_futures = {}  # request_id -> asyncio.Future
 
 
 @sio.event
 async def display_screenshot(sid, data):
-    """大屏发送截图给服务端"""
-    wish_id = data.get("wish_id", "")
+    """大屏回传截图"""
+    req_id = data.get("request_id", "")
     image = data.get("image", "")
-    if wish_id and image:
-        display_screenshots[wish_id] = image
-        logger.info(f"收到大屏截图: {wish_id} ({len(image)} chars)")
-        # 只保留最近 20 张
-        if len(display_screenshots) > 20:
-            oldest = next(iter(display_screenshots))
-            del display_screenshots[oldest]
+    if req_id and req_id in screenshot_futures:
+        screenshot_futures[req_id].set_result(image)
+        logger.info(f"收到大屏截图: {req_id} ({len(image)} chars)")
 
 
-@api.get("/api/screenshot/{wish_id}")
-async def get_screenshot(wish_id: str):
-    """手机端获取大屏截图"""
-    image = display_screenshots.get(wish_id)
-    if image:
-        return JSONResponse({"image": image})
-    return JSONResponse({"image": ""}, status_code=404)
+@api.get("/api/screenshot")
+async def get_screenshot():
+    """手机请求实时截图：通知大屏截图，等待回传"""
+    req_id = str(uuid.uuid4())[:8]
+    loop = asyncio.get_event_loop()
+    future = loop.create_future()
+    screenshot_futures[req_id] = future
+
+    # 通知大屏截图
+    await sio.emit("take_screenshot", {"request_id": req_id})
+
+    try:
+        image = await asyncio.wait_for(future, timeout=8.0)
+        del screenshot_futures[req_id]
+        if image:
+            return JSONResponse({"image": image})
+        return JSONResponse({"image": ""}, status_code=500)
+    except asyncio.TimeoutError:
+        screenshot_futures.pop(req_id, None)
+        return JSONResponse({"image": ""}, status_code=504)
 
 
 # --- 启动 ---
