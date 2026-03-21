@@ -1,0 +1,39 @@
+server:
+  host: "0.0.0.0"
+  port: 8080
+  debug: true
+  domain: "brickrecipes.ai"  # 正式域名，留空则自动检测 LAN IP
+
+ollama:
+  base_url: "http://localhost:11434"
+  model: "qwen3:0.6b"
+  timeout: 5
+  prompt_template: |
+    你是一位古风诗人。请将以下许愿文字美化为富有诗意的中文祝福语，不超过30字，保留原意：{wish}
+    /no_think
+
+image_api:
+  provider: "siliconflow"
+  base_url: "https://api.siliconflow.cn/v1"
+  api_key: ""  # 留空则使用 Pillow 兜底生成
+  model: "black-forest-labs/FLUX.1-schnell"
+  image_size: "512x512"
+  prompt_template: "A glowing traditional Chinese sky lantern floating in a starry night sky, warm amber light, {theme_en} theme, ethereal, dreamy atmosphere, dark blue background, bokeh, cinematic lighting"
+
+themes:
+  爱情: { emoji: "❤️", en: "romantic love", example: "愿我们一直在一起" }
+  事业: { emoji: "🏢", en: "career success", example: "早日不用打工" }
+  健康: { emoji: "🌿", en: "health and vitality", example: "愿家人平安健康" }
+  考试: { emoji: "📚", en: "academic excellence", example: "上岸！上岸！上岸！" }
+  财运: { emoji: "💰", en: "wealth and prosperity", example: "发财！不用多，来一个亿" }
+  搞笑: { emoji: "😄", en: "humor and joy", example: "希望明天不上班" }
+
+display:
+  max_lanterns: 40
+  demo_interval: 8
+  lucky_interval: 20
+
+font:
+  calligraphy: "/System/Library/Fonts/Supplemental/Songti.ttc"
+  elegant: "/System/Library/Fonts/HelveticaNeue.ttc"
+  fallback: "/System/Library/Fonts/STHeiti Medium.ttc"

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>How It Works - A3 Poster</title>
+<style>
+  @page { size: A3 landscape; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 420mm; height: 297mm;
+    background: linear-gradient(180deg, #020308 0%, #0A0E1C 50%, #0e0a06 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    color: #FFF8E6; overflow: hidden; position: relative; padding: 40px 60px;
+  }
+  /* Warm lantern dots background */
+  body::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(3px 3px at 5% 8%, rgba(255,180,60,0.3), transparent 6px),
+      radial-gradient(2px 2px at 14% 4%, rgba(255,200,90,0.2), transparent 5px),
+      radial-gradient(4px 4px at 25% 12%, rgba(255,160,45,0.25), transparent 8px),
+      radial-gradient(2px 2px at 40% 6%, rgba(255,210,100,0.2), transparent 5px),
+      radial-gradient(3px 3px at 55% 10%, rgba(255,175,55,0.25), transparent 6px),
+      radial-gradient(2px 2px at 68% 3%, rgba(255,195,80,0.2), transparent 5px),
+      radial-gradient(3px 3px at 80% 14%, rgba(255,165,50,0.3), transparent 6px),
+      radial-gradient(2px 2px at 92% 8%, rgba(255,205,95,0.2), transparent 5px),
+      radial-gradient(2px 2px at 10% 92%, rgba(255,170,55,0.2), transparent 5px),
+      radial-gradient(3px 3px at 50% 95%, rgba(255,190,70,0.15), transparent 6px),
+      radial-gradient(2px 2px at 85% 90%, rgba(255,180,60,0.2), transparent 5px);
+    pointer-events: none;
+  }
+  /* Warm horizon glow */
+  body::after {
+    content: '';
+    position: absolute; bottom: -80px; left: 50%; transform: translateX(-50%);
+    width: 800px; height: 350px;
+    background: radial-gradient(ellipse, rgba(255,130,20,0.1), rgba(255,90,10,0.03) 50%, transparent 75%);
+    pointer-events: none;
+  }
+  .content { position: relative; z-index: 1; width: 100%; }
+  .header { text-align: center; margin-bottom: 20px; }
+  .header h1 {
+    font-size: 52px; color: #FFE18C; font-weight: 700;
+    text-shadow: 0 0 40px rgba(255,160,50,0.35), 0 2px 4px rgba(0,0,0,0.5);
+    letter-spacing: 4px;
+  }
+  .header p {
+    font-size: 18px; color: rgba(255,200,120,0.45);
+    letter-spacing: 6px; text-transform: uppercase; margin-top: 6px;
+  }
+  .flow {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0; margin: 40px auto; width: 100%;
+  }
+  .step-card {
+    background: rgba(255,160,50,0.04);
+    border: 1.5px solid rgba(255,179,71,0.2);
+    border-radius: 24px; padding: 40px 32px 36px;
+    text-align: center; width: 250px; position: relative;
+  }
+  .step-number {
+    position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, #FFB347, #B46414);
+    color: #1a0a00; width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700;
+  }
+  .step-emoji { font-size: 64px; margin-bottom: 16px; display: block; }
+  .step-title {
+    font-size: 22px; color: #FFE18C; font-weight: 600; margin-bottom: 8px;
+  }
+  .step-desc { font-size: 15px; color: rgba(255,248,230,0.55); line-height: 1.5; }
+  .step-desc-zh { font-size: 14px; color: rgba(255,190,100,0.4); margin-top: 6px; }
+  .arrow { font-size: 36px; color: rgba(255,179,71,0.25); margin: 0 20px; flex-shrink: 0; }
+
+  .bottom-bar {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    width: 100%; margin-top: auto;
+  }
+  .wifi-info {
+    background: rgba(255,160,50,0.06);
+    border: 1px solid rgba(255,179,71,0.2);
+    border-radius: 14px; padding: 16px 24px; text-align: left;
+  }
+  .wifi-label {
+    font-size: 11px; color: rgba(255,190,100,0.45);
+    text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px;
+  }
+  .wifi-name { font-size: 22px; color: #FFB347; font-weight: 600; font-family: monospace; }
+  .wifi-pass { font-size: 14px; color: rgba(255,190,100,0.5); font-family: monospace; margin-top: 4px; }
+  .qr-mini { text-align: center; }
+  .qr-mini img {
+    width: 120px; height: 120px; border-radius: 12px;
+    border: 2px solid rgba(255,179,71,0.25);
+  }
+  .qr-mini p { font-size: 13px; color: rgba(255,200,120,0.45); margin-top: 6px; }
+  .price-tag {
+    background: linear-gradient(135deg, rgba(255,179,71,0.1), rgba(180,100,20,0.08));
+    border: 1.5px solid rgba(255,179,71,0.3);
+    border-radius: 16px; padding: 16px 28px; text-align: center;
+  }
+  .price-amount { font-size: 32px; color: #FFE18C; font-weight: 700; }
+  .price-label {
+    font-size: 12px; color: rgba(255,200,120,0.45);
+    text-transform: uppercase; letter-spacing: 1px; margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="content" style="display:flex;flex-direction:column;height:100%;">
+  <div class="header">
+    <h1>&#x2728; Cyber Sky Lantern</h1>
+    <p>AI-Powered Yi Peng Lantern Experience</p>
+  </div>
+
+  <div class="flow">
+    <div class="step-card">
+      <div class="step-number">1</div>
+      <span class="step-emoji">📱</span>
+      <div class="step-title">Scan QR</div>
+      <div class="step-desc">Connect to WiFi, then scan the QR code with your phone</div>
+      <div class="step-desc-zh">连 WiFi，扫码进入许愿页</div>
+    </div>
+    <div class="arrow">&#10132;</div>
+    <div class="step-card">
+      <div class="step-number">2</div>
+      <span class="step-emoji">✍️</span>
+      <div class="step-title">Make a Wish</div>
+      <div class="step-desc">Pick a theme, write your wish, and sign your name</div>
+      <div class="step-desc-zh">选主题，写心愿，署上你的名字</div>
+    </div>
+    <div class="arrow">&#10132;</div>
+    <div class="step-card">
+      <div class="step-number">3</div>
+      <span class="step-emoji">✨</span>
+      <div class="step-title">Watch It Fly!</div>
+      <div class="step-desc">AI creates your lantern and sends it to the sky screen</div>
+      <div class="step-desc-zh">AI 点亮天灯，飞上星空大屏</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <div class="wifi-info">
+      <div class="wifi-label">Connect to WiFi</div>
+      <div class="wifi-name">CyberLantern_5G</div>
+      <div class="wifi-pass">Password: lantern2026</div>
+    </div>
+    <div class="qr-mini">
+      <img src="qr-code.png" alt="QR">
+      <p>Scan Me</p>
+    </div>
+    <div class="price-tag">
+      <div class="price-amount">FREE</div>
+      <div class="price-label">per wish</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

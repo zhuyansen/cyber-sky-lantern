@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyber Sky Lantern</title>
+<style>
+  * { margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #020204; cursor: none; }
+  canvas { display: block; position: fixed; top: 0; left: 0; z-index: 0; }
+  #counter {
+    position: fixed;
+    bottom: 24px;
+    left: 36px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 16px;
+    color: rgba(255, 200, 100, 0.5);
+    text-shadow: 0 0 12px rgba(255, 160, 50, 0.3);
+    z-index: 10;
+    pointer-events: none;
+    letter-spacing: 0.5px;
+  }
+  #title {
+    position: fixed;
+    top: 28px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 20px;
+    font-weight: 300;
+    color: rgba(255, 215, 0, 0.15);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    z-index: 10;
+    pointer-events: none;
+  }
+  #status {
+    position: fixed;
+    top: 10px;
+    right: 15px;
+    font-family: monospace;
+    font-size: 11px;
+    color: rgba(0, 212, 170, 0.4);
+    z-index: 10;
+    pointer-events: none;
+  }
+  @media (max-width: 480px) {
+    #title { font-size: 14px; top: 16px; letter-spacing: 3px; }
+    #counter { font-size: 12px; left: 16px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+<div id="title">Cyber Sky Lantern</div>
+<div id="counter"></div>
+<div id="status">connecting...</div>
+<style>
+  #startOverlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(2, 3, 8, 0.85);
+    z-index: 200; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; cursor: pointer;
+    transition: opacity 0.8s;
+  }
+  #startOverlay.hidden { opacity: 0; pointer-events: none; }
+  #startOverlay h2 {
+    font-family: -apple-system, sans-serif; font-size: 28px; font-weight: 300;
+    color: #FFD700; letter-spacing: 4px; text-shadow: 0 0 30px rgba(255,179,71,0.5);
+    margin-bottom: 16px;
+  }
+  #startOverlay p {
+    font-family: -apple-system, sans-serif; font-size: 14px;
+    color: rgba(255,200,100,0.5); letter-spacing: 1px;
+  }
+  #muteToggle {
+    position: fixed; bottom: 24px; right: 28px; z-index: 20;
+    cursor: pointer; pointer-events: auto; font-size: 18px;
+    color: rgba(255,200,100,0.35); transition: color 0.2s;
+  }
+  #muteToggle:hover { color: rgba(255,200,100,0.7); }
+</style>
+<div id="startOverlay">
+  <h2>CYBER SKY LANTERN</h2>
+  <p>Touch to begin</p>
+</div>
+<div id="muteToggle">&#x1f50a;</div>
+<audio id="bgMusic" loop preload="auto">
+  <source src="/static/assets/ambient.mp3" type="audio/mpeg">
+  <source src="/static/assets/ambient.wav" type="audio/wav">
+</audio>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+window.onerror = function(msg, url, line) {
+  const s = document.getElementById('status');
+  s.textContent = 'ERR:' + line + ':' + msg;
+  s.style.opacity = '1'; s.style.fontSize = '14px'; s.style.color = 'red';
+};
+
+// ========== Config ==========
+const MAX_LANTERNS = 50;
+const DEMO_INTERVAL = 4500;
+const DEMO_WISHES = [
+  // English
+  { text: 'May time be gentle', theme: 'Health' },
+  { text: 'Reach for the stars', theme: 'Career' },
+  { text: 'Love finds a way', theme: 'Love' },
+  { text: 'All wishes come true', theme: 'Fortune' },
+  { text: 'Peace and happiness', theme: 'Health' },
+  { text: 'Shine like a diamond', theme: 'Career' },
+  // 中文
+  { text: '愿家人平安健康', theme: 'Health' },
+  { text: '心想事成 万事如意', theme: 'Fortune' },
+  { text: '愿我们一直在一起', theme: 'Love' },
+  { text: '早日不用打工', theme: 'Career' },
+  { text: '希望明天不上班', theme: 'Joy' },
+  { text: '上岸 上岸 上岸', theme: 'Studies' },
+  // ภาษาไทย
+  { text: 'ขอให้มีความสุข', theme: 'Joy' },
+  { text: 'ขอให้ครอบครัวสุขภาพดี', theme: 'Health' },
+  { text: 'ขอให้ร่ำรวยมั่งมี', theme: 'Fortune' },
+  { text: 'ขอให้สอบผ่านทุกวิชา', theme: 'Studies' },
+  { text: 'ขอให้ได้งานในฝัน', theme: 'Career' },
+  { text: 'ขอให้เราอยู่ด้วยกันตลอดไป', theme: 'Love' },
+];
+
+// ========== Canvas ==========
+const canvas = document.getElementById('sky');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+let stars = [];
+let shootingStars = [];
+let embers = [];
+let bgLanterns = [];  // background tiny lanterns
+let silhouettePoints = [];
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  initStars();
+  initEmbers();
+  initBgLanterns();
+  initSilhouette();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ========== Stars (subtle, upper sky) ==========
+function initStars() {
+  stars = [];
+  for (let i = 0; i < 100; i++) {
+    stars.push({
+      x: Math.random() * W,
+      y: Math.random() * H * 0.5,
+      r: Math.random() * 0.6 + 0.2,
+      brightness: Math.random() * 0.15 + 0.04,
+      speed: Math.random() * 0.006 + 0.002,
+      offset: Math.random() * Math.PI * 2,
+    });
+  }
+}
+
+function drawStars(time) {
+  for (const s of stars) {
+    const alpha = s.brightness * (0.5 + 0.5 * Math.sin(time * s.speed + s.offset));
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200, 210, 240, ${Math.max(0.02, alpha)})`;
+    ctx.fill();
+  }
+}
+
+// ========== Background Lanterns (100+ tiny warm dots for depth) ==========
+function initBgLanterns() {
+  bgLanterns = [];
+  for (let i = 0; i < 120; i++) {
+    bgLanterns.push(createBgLantern(true));
+  }
+}
+
+function createBgLantern(randomY) {
+  const size = 0.8 + Math.random() * 3;
+  const w = Math.random();
+  return {
+    x: Math.random() * W,
+    y: randomY ? Math.random() * H * 0.92 : H + Math.random() * 150,
+    size,
+    speedY: 0.04 + Math.random() * 0.16,
+    swayAmp: 3 + Math.random() * 10,
+    swayFreq: 0.0006 + Math.random() * 0.003,
+    offset: Math.random() * Math.PI * 2,
+    time: Math.random() * 4000,
+    opacity: 0.08 + Math.random() * 0.28,
+    r: 255,
+    g: w < 0.25 ? 150 + Math.random() * 20 : (w < 0.6 ? 175 + Math.random() * 25 : 200 + Math.random() * 25),
+    b: w < 0.25 ? 25 + Math.random() * 20 : (w < 0.6 ? 40 + Math.random() * 30 : 70 + Math.random() * 35),
+    glowMul: 2.5 + Math.random() * 4,
+  };
+}
+
+function updateAndDrawBgLanterns() {
+  for (let i = 0; i < bgLanterns.length; i++) {
+    const d = bgLanterns[i];
+    d.time++;
+    d.y -= d.speedY;
+    const sx = Math.sin(d.time * d.swayFreq + d.offset) * d.swayAmp;
+    const px = d.x + sx;
+    const flicker = d.opacity * (0.6 + 0.4 * Math.sin(d.time * 0.015 + d.offset));
+
+    if (d.y < -50) { bgLanterns[i] = createBgLantern(false); continue; }
+
+    // Soft glow
+    const gR = d.size * d.glowMul;
+    const glow = ctx.createRadialGradient(px, d.y, 0, px, d.y, gR);
+    glow.addColorStop(0, `rgba(${d.r}, ${d.g}, ${d.b}, ${flicker * 0.2})`);
+    glow.addColorStop(0.5, `rgba(${d.r}, ${Math.max(0, d.g - 25)}, ${Math.max(0, d.b - 15)}, ${flicker * 0.05})`);
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(px - gR, d.y - gR, gR * 2, gR * 2);
+
+    // Core dot
+    ctx.beginPath();
+    ctx.arc(px, d.y, d.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${d.r}, ${d.g}, ${d.b}, ${flicker})`;
+    ctx.fill();
+  }
+}
+
+// ========== Shooting Stars ==========
+function spawnShootingStar() {
+  if (shootingStars.length >= 1) return;
+  shootingStars.push({
+    x: Math.random() * W * 0.6 + W * 0.2,
+    y: Math.random() * H * 0.2,
+    vx: (3 + Math.random() * 4) * (Math.random() > 0.5 ? 1 : -1),
+    vy: 2 + Math.random() * 2.5,
+    length: 40 + Math.random() * 60,
+    life: 0,
+    maxLife: 40 + Math.random() * 30,
+    opacity: 0,
+  });
+}
+
+function updateAndDrawShootingStars() {
+  for (let i = shootingStars.length - 1; i >= 0; i--) {
+    const ss = shootingStars[i];
+    ss.life++;
+    ss.x += ss.vx;
+    ss.y += ss.vy;
+    if (ss.life < 6) ss.opacity = ss.life / 6;
+    else if (ss.life > ss.maxLife - 10) ss.opacity = Math.max(0, (ss.maxLife - ss.life) / 10);
+    else ss.opacity = 1;
+    if (ss.life >= ss.maxLife) { shootingStars.splice(i, 1); continue; }
+
+    const speed = Math.sqrt(ss.vx * ss.vx + ss.vy * ss.vy);
+    const nx = -ss.vx / speed, ny = -ss.vy / speed;
+    const grad = ctx.createLinearGradient(ss.x, ss.y, ss.x + nx * ss.length, ss.y + ny * ss.length);
+    grad.addColorStop(0, `rgba(255, 240, 200, ${ss.opacity * 0.7})`);
+    grad.addColorStop(0.3, `rgba(255, 190, 120, ${ss.opacity * 0.3})`);
+    grad.addColorStop(1, 'rgba(255, 140, 60, 0)');
+    ctx.beginPath();
+    ctx.moveTo(ss.x, ss.y);
+    ctx.lineTo(ss.x + nx * ss.length, ss.y + ny * ss.length);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+}
+
+// ========== Warm Embers ==========
+function initEmbers() {
+  embers = [];
+  for (let i = 0; i < 35; i++) {
+    embers.push(createEmber(true));
+  }
+}
+
+function createEmber(randomY) {
+  return {
+    x: Math.random() * W,
+    y: randomY ? Math.random() * H : H + Math.random() * 50,
+    size: 0.5 + Math.random() * 1.2,
+    speedY: 0.1 + Math.random() * 0.25,
+    swayAmp: 8 + Math.random() * 16,
+    swayFreq: 0.003 + Math.random() * 0.006,
+    offset: Math.random() * Math.PI * 2,
+    time: Math.random() * 1000,
+    opacity: Math.random() * 0.15 + 0.03,
+    r: 255, g: 150 + Math.random() * 70, b: 25 + Math.random() * 40,
+  };
+}
+
+function updateAndDrawEmbers() {
+  for (let i = 0; i < embers.length; i++) {
+    const e = embers[i];
+    e.time++;
+    e.y -= e.speedY;
+    const sx = Math.sin(e.time * e.swayFreq + e.offset) * e.swayAmp;
+    const flickerA = e.opacity * (0.4 + 0.6 * Math.sin(e.time * 0.03 + e.offset));
+    if (e.y < -15) { embers[i] = createEmber(false); continue; }
+    ctx.beginPath();
+    ctx.arc(e.x + sx, e.y, e.size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${e.r}, ${e.g}, ${e.b}, ${flickerA})`;
+    ctx.fill();
+  }
+}
+
+// ========== Sky ==========
+function drawSky() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#010204');
+  grad.addColorStop(0.3, '#030610');
+  grad.addColorStop(0.55, '#050a16');
+  grad.addColorStop(0.8, '#080d1a');
+  grad.addColorStop(1, '#0a0e1c');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ========== Ground Glow ==========
+function drawGroundGlow(time) {
+  const breathe = 0.8 + 0.2 * Math.sin(time * 0.0015);
+
+  // Broad warm horizon wash
+  const g1 = ctx.createRadialGradient(W * 0.5, H * 1.2, 0, W * 0.5, H * 1.2, H * 0.9);
+  g1.addColorStop(0, `rgba(255, 120, 15, ${0.14 * breathe})`);
+  g1.addColorStop(0.25, `rgba(255, 95, 10, ${0.07 * breathe})`);
+  g1.addColorStop(0.5, `rgba(200, 55, 5, ${0.03 * breathe})`);
+  g1.addColorStop(1, 'rgba(100, 20, 0, 0)');
+  ctx.fillStyle = g1;
+  ctx.fillRect(0, H * 0.2, W, H * 0.8);
+
+  // Hot center glow
+  const g2 = ctx.createRadialGradient(W * 0.5, H * 1.08, 0, W * 0.5, H * 1.08, H * 0.45);
+  g2.addColorStop(0, `rgba(255, 150, 40, ${0.1 * breathe})`);
+  g2.addColorStop(0.4, `rgba(255, 110, 25, ${0.04 * breathe})`);
+  g2.addColorStop(1, 'rgba(200, 60, 0, 0)');
+  ctx.fillStyle = g2;
+  ctx.fillRect(0, H * 0.5, W, H * 0.5);
+
+  // Side warm washes
+  const g3 = ctx.createRadialGradient(W * 0.15, H * 1.1, 0, W * 0.15, H * 1.1, H * 0.5);
+  g3.addColorStop(0, `rgba(255, 110, 20, ${0.05 * breathe})`);
+  g3.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g3;
+  ctx.fillRect(0, H * 0.5, W * 0.5, H * 0.5);
+
+  const g4 = ctx.createRadialGradient(W * 0.85, H * 1.1, 0, W * 0.85, H * 1.1, H * 0.5);
+  g4.addColorStop(0, `rgba(255, 110, 20, ${0.05 * breathe})`);
+  g4.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g4;
+  ctx.fillRect(W * 0.5, H * 0.5, W * 0.5, H * 0.5);
+}
+
+// ========== Ground Silhouette ==========
+function initSilhouette() {
+  silhouettePoints = [];
+  const step = 8;
+  for (let x = 0; x <= W + step; x += step) {
+    // Layered sine waves for natural tree/crowd line
+    const h = Math.sin(x * 0.008) * 12
+            + Math.sin(x * 0.02 + 1.3) * 7
+            + Math.sin(x * 0.05 + 2.7) * 4
+            + Math.sin(x * 0.003) * 18;
+    silhouettePoints.push({ x, y: H * 0.94 - h });
+  }
+}
+
+function drawSilhouette() {
+  if (silhouettePoints.length < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  ctx.lineTo(silhouettePoints[0].x, silhouettePoints[0].y);
+  for (let i = 1; i < silhouettePoints.length; i++) {
+    ctx.lineTo(silhouettePoints[i].x, silhouettePoints[i].y);
+  }
+  ctx.lineTo(W, H);
+  ctx.closePath();
+
+  // Gradient fill: dark but with subtle warm top edge
+  const sg = ctx.createLinearGradient(0, H * 0.9, 0, H);
+  sg.addColorStop(0, 'rgba(8, 4, 2, 0.85)');
+  sg.addColorStop(0.15, 'rgba(5, 3, 2, 0.95)');
+  sg.addColorStop(1, 'rgba(3, 2, 1, 1)');
+  ctx.fillStyle = sg;
+  ctx.fill();
+
+  // Warm edge glow on top of silhouette
+  ctx.save();
+  ctx.clip();
+  const eg = ctx.createLinearGradient(0, H * 0.9, 0, H * 0.96);
+  eg.addColorStop(0, 'rgba(255, 100, 20, 0.08)');
+  eg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = eg;
+  ctx.fillRect(0, H * 0.88, W, H * 0.1);
+  ctx.restore();
+}
+
+// ========== Vignette ==========
+function drawVignette() {
+  const gradient = ctx.createRadialGradient(W / 2, H * 0.45, H * 0.3, W / 2, H * 0.45, H * 1.0);
+  gradient.addColorStop(0, 'rgba(2, 2, 4, 0)');
+  gradient.addColorStop(1, 'rgba(1, 1, 2, 0.55)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ========== Yi Peng Lanterns ==========
+const lanterns = [];
+let wishCount = 0;
+let lastActivity = Date.now();
+
+const MAX_HIGHLIGHTS = 3;
+
+class Lantern {
+  constructor(text, theme, emoji, isLucky, name, wishId, isRealtime) {
+    this.text = text;
+    this.name = name || '';
+    this.theme = theme;
+    this.emoji = emoji;
+    this.isLucky = isLucky;
+    this.wishId = wishId || '';
+    // Dynamic highlight: real-time wishes get temporary highlight
+    this.isHighlighted = !!isRealtime;
+    this.highlightTimer = isRealtime ? 900 : 0; // ~15 sec at 60fps
+
+    if (this.isHighlighted) {
+      // Highlighted lantern: center, bigger, brighter
+      this.x = W * 0.35 + Math.random() * W * 0.3;
+      this.targetY = H * 0.18 + Math.random() * H * 0.12;
+      this.scale = 0.95 + Math.random() * 0.15;
+      this.maxOpacity = 1.0;
+    } else {
+      // Spread out: try to find a position away from existing lanterns
+      let bestX, bestY, bestDist = 0;
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const cx = W * 0.08 + Math.random() * W * 0.84;
+        const cy = H * 0.06 + Math.random() * H * 0.55;
+        let minDist = Infinity;
+        for (const l of lanterns) {
+          if (l.state === 'fading') continue;
+          const dx = cx - l.x, dy = cy - l.targetY;
+          minDist = Math.min(minDist, Math.sqrt(dx * dx + dy * dy));
+        }
+        if (minDist > bestDist) {
+          bestDist = minDist;
+          bestX = cx;
+          bestY = cy;
+        }
+      }
+      this.x = bestX || (W * 0.08 + Math.random() * W * 0.84);
+      this.targetY = bestY || (H * 0.06 + Math.random() * H * 0.55);
+      this.scale = 0.4 + Math.random() * 0.6;
+      this.maxOpacity = 0.88 + Math.random() * 0.12;
+    }
+    this.y = H + 100;
+    this.speedY = this.isHighlighted ? 0.35 : (0.28 + Math.random() * 0.48);
+    this.swayAmp = this.isHighlighted ? 3 : (5 + Math.random() * 14);
+    this.swayFreq = 0.0008 + Math.random() * 0.003;
+    this.swayOffset = Math.random() * Math.PI * 2;
+    this.time = 0;
+
+    this.opacity = 0;
+    this.state = 'rising';
+    this.floatTimer = 0;
+    this.maxFloatTime = 3000 + Math.random() * 3000; // ~50-100 seconds
+
+    // Warm color palette
+    const w = Math.random();
+    if (this.isHighlighted) {
+      // Highlighted: bright warm white to stand out clearly
+      this.cr = 255; this.cg = 240; this.cb = 180;
+    } else if (this.isLucky) {
+      this.cr = 255; this.cg = 225; this.cb = 60;
+    } else if (w < 0.2) {
+      this.cr = 255; this.cg = 150 + Math.random() * 20; this.cb = 25 + Math.random() * 20;
+    } else if (w < 0.5) {
+      this.cr = 255; this.cg = 175 + Math.random() * 25; this.cb = 45 + Math.random() * 25;
+    } else if (w < 0.75) {
+      this.cr = 255; this.cg = 200 + Math.random() * 20; this.cb = 70 + Math.random() * 30;
+    } else {
+      this.cr = 255; this.cg = 220 + Math.random() * 15; this.cb = 110 + Math.random() * 30;
+    }
+
+    // Lucky particles
+    this.particles = [];
+    if (isLucky) {
+      for (let i = 0; i < 20; i++) {
+        this.particles.push({
+          angle: Math.random() * Math.PI * 2,
+          dist: 25 + Math.random() * 55,
+          speed: 0.005 + Math.random() * 0.012,
+          size: 0.7 + Math.random() * 1.8,
+          brightness: Math.random(),
+        });
+      }
+    }
+  }
+
+  update() {
+    this.time++;
+    const sway = Math.sin(this.time * this.swayFreq + this.swayOffset) * this.swayAmp;
+    this.displayX = Math.max(W * 0.08, Math.min(W * 0.92, this.x + sway));
+
+    // Highlight timer countdown
+    if (this.highlightTimer > 0) {
+      this.highlightTimer--;
+      if (this.highlightTimer <= 0) {
+        this.isHighlighted = false;
+        // Smoothly transition to normal scale
+        this.targetScale = 0.5 + Math.random() * 0.4;
+      }
+    }
+
+    // Named wishes never fade
+    const isPersistent = this.isHighlighted || this.name;
+
+    if (this.state === 'rising') {
+      this.y -= this.speedY;
+      this.opacity = Math.min(this.maxOpacity, this.opacity + 0.01);
+      if (this.y <= this.targetY) this.state = 'floating';
+    } else if (this.state === 'floating') {
+      if (isPersistent) {
+        // Persistent lanterns: gentle drift around target, never fade
+        this.y += (this.targetY - this.y) * 0.005;
+      } else {
+        this.y -= 0.025;
+        this.floatTimer++;
+        if (this.floatTimer >= this.maxFloatTime) this.state = 'fading';
+      }
+    } else if (this.state === 'fading') {
+      if (isPersistent) { this.state = 'floating'; return; }
+      this.opacity -= 0.002;
+      this.scale *= 0.9998;
+      this.y -= 0.05;
+    }
+
+    for (const p of this.particles) {
+      p.angle += p.speed;
+      p.brightness = 0.3 + 0.7 * Math.sin(this.time * 0.025 + p.angle);
+    }
+  }
+
+  draw(ctx) {
+    if (this.opacity <= 0) return;
+    const x = this.displayX;
+    const y = this.y;
+    const s = this.scale;
+    const { cr, cg, cb } = this;
+
+    ctx.save();
+    ctx.globalAlpha = this.opacity;
+
+    // ──── Layer 1: Wide atmospheric glow ────
+    const a1R = (170 + 25 * Math.sin(this.time * 0.006)) * s;
+    const a1 = ctx.createRadialGradient(x, y, 0, x, y, a1R);
+    a1.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0.07)`);
+    a1.addColorStop(0.3, `rgba(${cr}, ${Math.max(0, cg - 30)}, ${Math.max(0, cb - 20)}, 0.025)`);
+    a1.addColorStop(0.7, `rgba(${cr}, ${Math.max(0, cg - 60)}, ${Math.max(0, cb - 30)}, 0.008)`);
+    a1.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = a1;
+    ctx.fillRect(x - a1R, y - a1R, a1R * 2, a1R * 2);
+
+    // ──── Layer 2: Inner warm glow ────
+    const a2R = (85 + 14 * Math.sin(this.time * 0.012)) * s;
+    const a2 = ctx.createRadialGradient(x, y - 4 * s, 0, x, y + 3 * s, a2R);
+    a2.addColorStop(0, `rgba(${cr}, ${Math.min(255, cg + 15)}, ${Math.min(255, cb + 25)}, 0.35)`);
+    a2.addColorStop(0.35, `rgba(${cr}, ${cg}, ${cb}, 0.14)`);
+    a2.addColorStop(0.7, `rgba(${cr}, ${Math.max(0, cg - 20)}, ${Math.max(0, cb - 15)}, 0.04)`);
+    a2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = a2;
+    ctx.fillRect(x - a2R, y - a2R, a2R * 2, a2R * 2);
+
+    // ──── Layer 3: Lantern body (soft luminous ellipse) ────
+    const bw = 25 * s;  // half-width
+    const bh = 34 * s;  // half-height
+    const bOffY = -2 * s; // slight upward offset for dome feel
+
+    // Outer soft edge (feathered)
+    ctx.beginPath();
+    ctx.ellipse(x, y + bOffY, bw + 4 * s, bh + 4 * s, 0, 0, Math.PI * 2);
+    const feather = ctx.createRadialGradient(x, y + bOffY - bh * 0.15, bw * 0.3, x, y + bOffY, bh + 4 * s);
+    feather.addColorStop(0, `rgba(${cr}, ${Math.min(255, cg + 20)}, ${Math.min(255, cb + 40)}, 0.3)`);
+    feather.addColorStop(0.5, `rgba(${cr}, ${cg}, ${cb}, 0.15)`);
+    feather.addColorStop(0.85, `rgba(${Math.max(0, cr - 30)}, ${Math.max(0, cg - 40)}, ${Math.max(0, cb - 25)}, 0.06)`);
+    feather.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = feather;
+    ctx.fill();
+
+    // Main body (slightly smaller, more opaque)
+    ctx.beginPath();
+    ctx.ellipse(x, y + bOffY, bw, bh, 0, 0, Math.PI * 2);
+    const bodyGrad = ctx.createRadialGradient(x, y + bOffY - bh * 0.25, bw * 0.15, x, y + bOffY + bh * 0.15, bh * 0.85);
+    if (this.isLucky) {
+      bodyGrad.addColorStop(0, 'rgba(255, 248, 195, 0.95)');
+      bodyGrad.addColorStop(0.3, 'rgba(255, 230, 100, 0.85)');
+      bodyGrad.addColorStop(0.65, 'rgba(245, 195, 40, 0.7)');
+      bodyGrad.addColorStop(1, 'rgba(210, 150, 15, 0.5)');
+    } else {
+      bodyGrad.addColorStop(0, `rgba(255, ${Math.min(255, cg + 35)}, ${Math.min(255, cb + 60)}, 0.9)`);
+      bodyGrad.addColorStop(0.25, `rgba(${cr}, ${Math.min(255, cg + 10)}, ${Math.min(255, cb + 20)}, 0.78)`);
+      bodyGrad.addColorStop(0.6, `rgba(${Math.max(0, cr - 15)}, ${Math.max(0, cg - 25)}, ${Math.max(0, cb - 15)}, 0.58)`);
+      bodyGrad.addColorStop(1, `rgba(${Math.max(0, cr - 55)}, ${Math.max(0, cg - 65)}, ${Math.max(0, cb - 25)}, 0.35)`);
+    }
+    ctx.fillStyle = bodyGrad;
+    ctx.fill();
+
+    // ──── Layer 4: Internal light bloom ────
+    ctx.beginPath();
+    ctx.ellipse(x, y + bOffY - bh * 0.12, bw * 0.5, bh * 0.3, 0, 0, Math.PI * 2);
+    const bloomAlpha = 0.12 + 0.05 * Math.sin(this.time * 0.02);
+    ctx.fillStyle = `rgba(255, 252, 240, ${bloomAlpha})`;
+    ctx.fill();
+
+    // ──── Layer 5: Bottom flame glow ────
+    const flameY = y + bOffY + bh * 0.9;
+    const fR = 16 * s;
+    const fg = ctx.createRadialGradient(x, flameY, 0, x, flameY, fR);
+    const fFlicker = 0.35 + 0.12 * Math.sin(this.time * 0.03);
+    fg.addColorStop(0, `rgba(255, 215, 100, ${fFlicker})`);
+    fg.addColorStop(0.3, `rgba(255, 170, 55, ${fFlicker * 0.4})`);
+    fg.addColorStop(0.7, `rgba(255, 130, 30, ${fFlicker * 0.1})`);
+    fg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = fg;
+    ctx.fillRect(x - fR, flameY - fR * 0.6, fR * 2, fR * 1.4);
+
+    // Tiny bright flame core
+    ctx.beginPath();
+    ctx.arc(x, flameY - 2 * s, 2 * s, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 240, 180, ${fFlicker * 0.6})`;
+    ctx.fill();
+
+    // ──── Layer 6: Text BELOW lantern (floating tag) ────
+    const tagTop = y + bOffY + bh + 12 * s;
+    const fontSize = this.isHighlighted
+      ? Math.max(13, Math.round(17 * s))
+      : Math.max(9, Math.round(13 * s));
+    const fontWeight = this.isHighlighted ? '500' : '300';
+    ctx.font = `${fontWeight} ${fontSize}px -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    // Word-wrap into up to 2 lines
+    const maxLineW = 160 * s;
+    const words = this.text.split(' ');
+    const tLines = [];
+    let cur = '';
+    for (const w of words) {
+      const test = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(test).width > maxLineW && cur) {
+        tLines.push(cur);
+        cur = w;
+      } else {
+        cur = test;
+      }
+    }
+    if (cur) tLines.push(cur);
+    // Keep max 2 lines
+    if (tLines.length > 2) { tLines.length = 2; tLines[1] = tLines[1].replace(/\s*\S*$/, '…'); }
+
+    // Connecting thread
+    ctx.globalAlpha = this.opacity * 0.12;
+    ctx.beginPath();
+    ctx.moveTo(x, y + bOffY + bh * 0.85);
+    ctx.lineTo(x, tagTop - 2 * s);
+    ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, 0.35)`;
+    ctx.lineWidth = 0.5 * s;
+    ctx.stroke();
+
+    // Draw text lines with dark halo
+    const lineH = fontSize * 1.35;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+    ctx.shadowBlur = 10 * s;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    for (let i = 0; i < tLines.length; i++) {
+      ctx.globalAlpha = this.opacity * 0.78;
+      ctx.fillStyle = `rgba(255, 238, 185, 0.93)`;
+      ctx.fillText(tLines[i], x, tagTop + i * lineH);
+    }
+    ctx.shadowBlur = 0;
+
+    // Signature
+    if (this.name) {
+      const nfs = Math.max(9, Math.round(11 * s));
+      ctx.font = `italic 400 ${nfs}px -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif`;
+      ctx.globalAlpha = this.opacity * 0.7;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+      ctx.shadowBlur = 8 * s;
+      ctx.fillStyle = `rgba(255, 200, 120, 0.85)`;
+      ctx.fillText(`— ${this.name}`, x, tagTop + tLines.length * lineH + 2);
+      ctx.shadowBlur = 0;
+    }
+
+    // Lucky golden sparkles
+    if (this.isLucky) {
+      ctx.globalAlpha = this.opacity;
+      for (const p of this.particles) {
+        const px = x + Math.cos(p.angle) * p.dist * s;
+        const py = y + Math.sin(p.angle) * p.dist * s;
+        ctx.beginPath();
+        ctx.arc(px, py, p.size * s, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 225, 50, ${p.brightness * this.opacity * 0.5})`;
+        ctx.fill();
+      }
+    }
+
+    // ──── Layer 7: Highlighted lantern extra glow (bigger + brighter + sparkles) ────
+    if (this.isHighlighted) {
+      const pulse = 0.5 + 0.5 * Math.sin(this.time * 0.025);
+      // Extra wide warm glow
+      const exR = (250 + 40 * pulse) * s;
+      const ex = ctx.createRadialGradient(x, y, 0, x, y, exR);
+      ex.addColorStop(0, `rgba(255, 220, 80, ${0.18 + 0.1 * pulse})`);
+      ex.addColorStop(0.25, `rgba(255, 180, 50, ${0.08 + 0.05 * pulse})`);
+      ex.addColorStop(0.5, `rgba(255, 140, 30, ${0.03 + 0.02 * pulse})`);
+      ex.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = this.opacity;
+      ctx.fillStyle = ex;
+      ctx.fillRect(x - exR, y - exR, exR * 2, exR * 2);
+
+      // Floating sparkles around highlighted lantern
+      ctx.globalAlpha = this.opacity * 0.7;
+      for (let i = 0; i < 12; i++) {
+        const angle = (this.time * 0.008 + i * Math.PI * 2 / 12);
+        const dist = (60 + 25 * Math.sin(this.time * 0.012 + i)) * s;
+        const sx = x + Math.cos(angle) * dist;
+        const sy = y + Math.sin(angle) * dist * 0.7;
+        const sparkleSize = (1.2 + 0.8 * Math.sin(this.time * 0.03 + i * 2)) * s;
+        const sparkleAlpha = 0.3 + 0.4 * Math.sin(this.time * 0.02 + i * 1.5);
+        ctx.beginPath();
+        ctx.arc(sx, sy, sparkleSize, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 225, 100, ${sparkleAlpha})`;
+        ctx.fill();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  get isDead() {
+    return this.opacity <= 0 && this.state === 'fading';
+  }
+}
+
+function addLantern(text, theme, emoji, isLucky, name, wishId, isRealtime) {
+  // Limit simultaneous highlights
+  if (isRealtime) {
+    const activeHighlights = lanterns.filter(l => l.isHighlighted).length;
+    if (activeHighlights >= MAX_HIGHLIGHTS) {
+      // Find the oldest highlight and un-highlight it
+      const oldest = lanterns.find(l => l.isHighlighted && l.highlightTimer > 0);
+      if (oldest) { oldest.highlightTimer = 0; oldest.isHighlighted = false; }
+    }
+  }
+  while (lanterns.length >= MAX_LANTERNS) {
+    const oldest = lanterns.find(l => l.state !== 'fading' && !l.isHighlighted && !l.name);
+    if (oldest) oldest.state = 'fading';
+    else break;
+  }
+  lanterns.push(new Lantern(text, theme, emoji, isLucky, name, wishId, isRealtime));
+  lastActivity = Date.now();
+}
+
+function updateCounter(count) {
+  wishCount = count;
+  document.getElementById('counter').textContent = `${count} lantern${count !== 1 ? 's' : ''} tonight`;
+}
+
+// ========== Main Render ==========
+let frameTime = 0;
+let lastShootingStarTime = 0;
+
+function render() {
+  frameTime++;
+
+  drawSky();
+  drawGroundGlow(frameTime);
+  drawStars(frameTime);
+  updateAndDrawBgLanterns();
+
+  // Rare shooting stars
+  if (frameTime - lastShootingStarTime > 500 + Math.random() * 600) {
+    if (Math.random() < 0.15) {
+      spawnShootingStar();
+      lastShootingStarTime = frameTime;
+    }
+  }
+  updateAndDrawShootingStars();
+  updateAndDrawEmbers();
+
+  // Main lanterns
+  for (let i = lanterns.length - 1; i >= 0; i--) {
+    lanterns[i].update();
+    if (lanterns[i].isDead) lanterns.splice(i, 1);
+  }
+  // Depth sort, but draw highlighted lantern last (always on top)
+  const sorted = [...lanterns].sort((a, b) => {
+    if (a.isHighlighted) return 1;  // highlighted always last
+    if (b.isHighlighted) return -1;
+    return a.scale - b.scale;
+  });
+  for (const l of sorted) l.draw(ctx);
+
+  drawSilhouette();
+  drawVignette();
+  requestAnimationFrame(render);
+}
+render();
+
+// ========== Socket.IO ==========
+const socket = io();
+
+socket.on('connect', () => {
+  document.getElementById('status').textContent = 'connected';
+  setTimeout(() => { document.getElementById('status').style.opacity = '0'; }, 3000);
+});
+
+socket.on('disconnect', () => {
+  document.getElementById('status').style.opacity = '1';
+  document.getElementById('status').textContent = 'reconnecting...';
+});
+
+socket.on('new_lantern', (data) => {
+  addLantern(data.text, data.theme, data.emoji, data.is_lucky, data.name, data.id, true);
+  updateCounter(data.counter);
+  tryPlayMusic();
+});
+
+socket.on('sync_counter', (data) => {
+  updateCounter(data.counter);
+});
+
+socket.on('recent_wishes', (wishes) => {
+  // Restore recent wishes on connect (skip if already have enough lanterns)
+  const existing = lanterns.filter(l => l.wishId).map(l => l.wishId);
+  for (const w of wishes) {
+    if (!existing.includes(w.id)) {
+      addLantern(w.text, w.theme, w.emoji, w.is_lucky, w.name, w.id);
+    }
+  }
+});
+
+// ========== Demo ==========
+// Keep sky full: maintain 15-25 visible lanterns at all times
+const MIN_VISIBLE = 15;
+const TARGET_VISIBLE = 22;
+
+setInterval(() => {
+  const visible = lanterns.filter(l => l.state !== 'fading').length;
+  if (visible < TARGET_VISIBLE) {
+    const demo = DEMO_WISHES[Math.floor(Math.random() * DEMO_WISHES.length)];
+    addLantern(demo.text, demo.theme, demo.emoji, Math.random() < 0.04);
+  }
+}, 1800);
+
+// Initial burst: fill the sky with lanterns
+setTimeout(() => {
+  const needed = Math.max(0, MIN_VISIBLE - lanterns.length);
+  for (let i = 0; i < needed; i++) {
+    setTimeout(() => {
+      const demo = DEMO_WISHES[i % DEMO_WISHES.length];
+      addLantern(demo.text, demo.theme, demo.emoji, false);
+    }, i * 400);
+  }
+}, 800);
+
+// ========== Start Overlay + Music ==========
+const bgMusic = document.getElementById('bgMusic');
+bgMusic.volume = 0.3;
+
+document.getElementById('startOverlay').addEventListener('click', () => {
+  document.getElementById('startOverlay').classList.add('hidden');
+  bgMusic.play().catch(() => {});
+});
+
+// Also try to play on first Socket.IO event
+let musicStarted = false;
+function tryPlayMusic() {
+  if (!musicStarted) {
+    bgMusic.play().then(() => { musicStarted = true; }).catch(() => {});
+  }
+}
+
+document.getElementById('muteToggle').addEventListener('click', () => {
+  bgMusic.muted = !bgMusic.muted;
+  document.getElementById('muteToggle').innerHTML = bgMusic.muted ? '&#x1f507;' : '&#x1f50a;';
+});
+</script>
+</body>
+</html>

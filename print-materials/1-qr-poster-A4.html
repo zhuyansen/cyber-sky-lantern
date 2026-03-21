@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>QR Poster A4</title>
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 210mm; height: 297mm;
+    background: linear-gradient(180deg, #020308 0%, #0A0E1C 60%, #12100a 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #FFF8E6; overflow: hidden; position: relative;
+  }
+  /* Warm lantern dots */
+  body::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(3px 3px at 8% 12%, rgba(255,179,71,0.35), transparent 6px),
+      radial-gradient(2px 2px at 18% 6%, rgba(255,200,100,0.25), transparent 5px),
+      radial-gradient(3px 3px at 32% 18%, rgba(255,160,50,0.3), transparent 6px),
+      radial-gradient(2px 2px at 50% 4%, rgba(255,225,140,0.2), transparent 5px),
+      radial-gradient(4px 4px at 65% 15%, rgba(255,180,60,0.25), transparent 8px),
+      radial-gradient(2px 2px at 82% 9%, rgba(255,200,100,0.3), transparent 5px),
+      radial-gradient(3px 3px at 90% 20%, rgba(255,160,40,0.2), transparent 6px),
+      radial-gradient(2px 2px at 12% 85%, rgba(255,180,60,0.25), transparent 5px),
+      radial-gradient(3px 3px at 40% 90%, rgba(255,200,90,0.2), transparent 6px),
+      radial-gradient(2px 2px at 70% 88%, rgba(255,170,50,0.25), transparent 5px),
+      radial-gradient(3px 3px at 88% 92%, rgba(255,210,100,0.2), transparent 6px);
+    pointer-events: none;
+  }
+  /* Warm ground glow */
+  body::after {
+    content: '';
+    position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%);
+    width: 500px; height: 300px;
+    background: radial-gradient(ellipse, rgba(255,140,30,0.12), rgba(255,100,15,0.04) 50%, transparent 75%);
+    pointer-events: none;
+  }
+  .content { position: relative; z-index: 1; text-align: center; }
+  .lantern-deco { font-size: 48px; margin-bottom: 20px; opacity: 0.8; }
+  .title {
+    font-size: 44px; font-weight: 700;
+    color: #FFE18C;
+    text-shadow: 0 0 40px rgba(255,160,50,0.4), 0 2px 4px rgba(0,0,0,0.5);
+    letter-spacing: 3px; margin-bottom: 8px;
+  }
+  .subtitle {
+    font-size: 16px; color: rgba(255,200,120,0.5);
+    letter-spacing: 5px; text-transform: uppercase; margin-bottom: 40px;
+  }
+  .qr-frame {
+    width: 210px; height: 210px;
+    background: rgba(2,3,8,0.8);
+    border: 2px solid rgba(255,179,71,0.35);
+    border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+    box-shadow: 0 0 50px rgba(255,140,30,0.12), inset 0 0 20px rgba(255,160,50,0.05);
+    overflow: hidden;
+  }
+  .qr-frame img { width: 185px; height: 185px; }
+  .qr-hint {
+    font-size: 24px; color: #FFB347; font-weight: 600;
+    margin-bottom: 6px; letter-spacing: 1px;
+    text-shadow: 0 0 15px rgba(255,160,50,0.3);
+  }
+  .qr-hint-sub {
+    font-size: 14px; color: rgba(255,190,100,0.45); margin-bottom: 50px;
+  }
+  .steps { display: flex; gap: 36px; margin-bottom: 50px; }
+  .step { text-align: center; width: 130px; }
+  .step-icon { font-size: 42px; margin-bottom: 10px; }
+  .step-num {
+    font-size: 11px; color: #FFB347;
+    text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px;
+  }
+  .step-text { font-size: 15px; color: rgba(255,248,230,0.7); line-height: 1.4; }
+  .divider {
+    width: 100px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,179,71,0.3), transparent);
+    margin-bottom: 28px;
+  }
+  .tagline {
+    font-size: 14px; color: rgba(255,200,120,0.28);
+    letter-spacing: 6px; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="content">
+  <div class="lantern-deco">&#x2728;</div>
+  <div class="title">Cyber Sky Lantern</div>
+  <div class="subtitle">Digital Yi Peng Experience</div>
+
+  <div class="qr-frame">
+    <img src="qr-code.png" alt="Scan me">
+  </div>
+  <div class="qr-hint">Scan to Make a Wish</div>
+  <div class="qr-hint-sub">Connect to our WiFi first</div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-icon">📱</div>
+      <div class="step-num">Step 1</div>
+      <div class="step-text">Scan QR code</div>
+    </div>
+    <div class="step">
+      <div class="step-icon">✍️</div>
+      <div class="step-num">Step 2</div>
+      <div class="step-text">Write your wish</div>
+    </div>
+    <div class="step">
+      <div class="step-icon">✨</div>
+      <div class="step-num">Step 3</div>
+      <div class="step-text">Watch it fly!</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="tagline">Powered by AI</div>
+</div>
+</body>
+</html>

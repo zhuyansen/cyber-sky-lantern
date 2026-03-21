@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#020308">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta property="og:title" content="Cyber Sky Lantern">
+<meta property="og:description" content="Make a wish and watch your lantern fly">
+<meta property="og:type" content="website">
+<title>Cyber Sky Lantern</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    background: linear-gradient(180deg, #020308 0%, #0A0E1C 50%, #12100a 100%);
+    color: #f0e6d3;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 16px 40px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .top-bar {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+  }
+  .lang-toggle {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 200, 100, 0.3);
+  }
+  .lang-btn {
+    padding: 6px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    background: transparent;
+    color: rgba(255, 200, 100, 0.5);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .lang-btn.active {
+    background: rgba(255, 179, 71, 0.2);
+    color: #FFD700;
+  }
+  h1 {
+    font-size: 26px;
+    color: #FFD700;
+    text-shadow: 0 0 20px rgba(255, 179, 71, 0.5);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: rgba(255, 200, 100, 0.6);
+    margin-bottom: 24px;
+  }
+  .section-label {
+    font-size: 14px;
+    color: #FFB347;
+    margin-bottom: 12px;
+    text-align: left;
+    width: 100%;
+    font-weight: 500;
+  }
+  .form-section, .result, .loading {
+    max-width: 520px;
+    width: 100%;
+  }
+  @media (max-width: 480px) {
+    .form-section, .result, .loading { max-width: 100%; }
+  }
+  .themes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 24px;
+  }
+  .theme-btn {
+    background: rgba(255, 179, 71, 0.08);
+    border: 1.5px solid rgba(255, 179, 71, 0.25);
+    border-radius: 12px;
+    padding: 14px 8px;
+    color: #f0e6d3;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .theme-btn .theme-icon { width: 80px; height: 80px; border-radius: 16px; object-fit: cover; border: none; }
+  @media (max-width: 480px) {
+    .theme-btn .theme-icon { width: 56px; height: 56px; border-radius: 12px; }
+  }
+  .theme-btn:active,
+  .theme-btn.selected {
+    background: rgba(255, 179, 71, 0.2);
+    border-color: #FFB347;
+    box-shadow: 0 0 15px rgba(255, 179, 71, 0.3);
+    transform: scale(1.03);
+  }
+  .wish-input {
+    width: 100%;
+    max-width: 520px;
+    margin-bottom: 8px;
+  }
+  textarea {
+    width: 100%;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1.5px solid rgba(255, 179, 71, 0.3);
+    border-radius: 12px;
+    padding: 14px;
+    color: #f0e6d3;
+    font-size: 16px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  textarea:focus {
+    border-color: #FFB347;
+    box-shadow: 0 0 10px rgba(255, 179, 71, 0.2);
+  }
+  textarea::placeholder { color: rgba(240, 230, 211, 0.3); }
+  .char-count {
+    text-align: right;
+    font-size: 12px;
+    color: rgba(255, 200, 100, 0.4);
+    margin-bottom: 16px;
+    width: 100%;
+    max-width: 520px;
+  }
+  .name-row {
+    width: 100%;
+    max-width: 520px;
+    margin-bottom: 20px;
+  }
+  .name-input {
+    width: 100%;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1.5px solid rgba(255, 179, 71, 0.2);
+    border-radius: 12px;
+    padding: 0 14px;
+    color: #f0e6d3;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .name-input:focus {
+    border-color: #FFB347;
+    box-shadow: 0 0 10px rgba(255, 179, 71, 0.15);
+  }
+  .name-input::placeholder { color: rgba(240, 230, 211, 0.25); }
+  .submit-btn {
+    width: 100%;
+    max-width: 520px;
+    padding: 16px;
+    background: linear-gradient(135deg, #FFB347, #FF8C00);
+    border: none;
+    border-radius: 14px;
+    color: #1a0a00;
+    font-size: 18px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+  .submit-btn:disabled {
+    background: rgba(255, 179, 71, 0.15);
+    color: rgba(240, 230, 211, 0.3);
+    cursor: not-allowed;
+  }
+  .submit-btn:not(:disabled):active {
+    transform: scale(0.97);
+  }
+
+  .loading {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin-top: 60px;
+  }
+  .loading.active { display: flex; }
+  .lantern-anim {
+    width: 60px;
+    height: 80px;
+    background: radial-gradient(ellipse, #FFB347, #FF8C00 60%, transparent 100%);
+    border-radius: 50% 50% 45% 45%;
+    animation: float 2s ease-in-out infinite;
+    box-shadow: 0 0 40px rgba(255, 179, 71, 0.6);
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+  .loading-text {
+    color: #FFB347;
+    font-size: 15px;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  .result {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+    width: 100%;
+    max-width: 520px;
+  }
+  .result.active { display: flex; }
+  .result-lantern-icon {
+    width: 160px;
+    height: 160px;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(255, 179, 71, 0.35);
+  }
+  .result-lantern-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .watch-hint {
+    font-size: 12px;
+    color: rgba(255, 179, 71, 0.4);
+    text-align: center;
+    margin-top: -8px;
+  }
+  .result-text {
+    font-size: 22px;
+    color: #FFD700;
+    text-align: center;
+    line-height: 1.5;
+    text-shadow: 0 0 15px rgba(255, 179, 71, 0.4);
+    padding: 0 10px;
+    margin-top: 8px;
+  }
+  .result-name {
+    font-size: 14px;
+    color: rgba(255, 179, 71, 0.7);
+    font-style: italic;
+  }
+  .result-original {
+    font-size: 13px;
+    color: rgba(240, 230, 211, 0.4);
+  }
+  .lucky-badge {
+    display: none;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #1a0a00;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    animation: glow 1s ease-in-out infinite alternate;
+  }
+  .lucky-badge.active { display: inline-block; }
+  @keyframes glow {
+    from { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+    to { box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
+  }
+  .watch-notice {
+    width: 100%;
+    max-width: 520px;
+    padding: 16px;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 500;
+    color: #FFD700;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 20px rgba(255, 179, 71, 0.4);
+    animation: noticePulse 2.5s ease-in-out infinite;
+  }
+  @keyframes noticePulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+  }
+  .save-btn-full {
+    width: 100%;
+    max-width: 520px;
+    background: rgba(255, 179, 71, 0.1);
+    border: 1.5px solid rgba(255, 179, 71, 0.3);
+    border-radius: 12px;
+    padding: 14px;
+    color: #FFB347;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .save-btn-full:active {
+    background: rgba(255, 179, 71, 0.2);
+    transform: scale(0.97);
+  }
+  .reset-btn {
+    background: rgba(255, 179, 71, 0.12);
+    border: 1.5px solid rgba(255, 179, 71, 0.35);
+    border-radius: 12px;
+    padding: 12px 24px;
+    color: #FFB347;
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .counter-info {
+    font-size: 12px;
+    color: rgba(255, 200, 100, 0.4);
+    margin-top: 8px;
+  }
+  .form-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+  .form-section.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="lang-toggle">
+    <button class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="langTh" onclick="setLang('th')">ไทย</button>
+    <button class="lang-btn" id="langZh" onclick="setLang('zh')">中文</button>
+  </div>
+</div>
+
+<h1 id="pageTitle">Cyber Sky Lantern</h1>
+<p class="subtitle" id="pageSubtitle">AI lights a sky lantern for your wish</p>
+
+<div class="form-section" id="formSection">
+  <p class="section-label" id="labelTheme">Choose a theme</p>
+  <div class="themes" id="themes"></div>
+
+  <p class="section-label" id="labelWish">Write your wish</p>
+  <div class="wish-input">
+    <textarea id="wishInput" maxlength="50" placeholder="Write your wish here..."></textarea>
+  </div>
+  <div class="char-count"><span id="charCount">0</span>/50</div>
+
+  <p class="section-label" id="labelName">Sign your name <span style="font-weight:300;color:rgba(255,179,71,0.4)">(optional)</span></p>
+  <div class="name-row">
+    <input type="text" class="name-input" id="nameInput" maxlength="20" placeholder="Your name or initials">
+  </div>
+
+  <button class="submit-btn" id="submitBtn" disabled>Release Lantern</button>
+</div>
+
+<div class="loading" id="loading">
+  <div class="lantern-anim"></div>
+  <p class="loading-text" id="loadingText">Lighting a sky lantern for your wish...</p>
+</div>
+
+<div class="result" id="result">
+  <div class="lucky-badge" id="luckyBadge">Lucky! You got a Golden Koi Lantern!</div>
+  <div class="result-lantern-icon" id="resultLanternIcon"></div>
+  <p class="result-text" id="resultText"></p>
+  <p class="result-name" id="resultName"></p>
+  <p class="result-original" id="resultOriginal"></p>
+  <p class="counter-info" id="counterInfo"></p>
+  <div class="watch-notice" id="watchNotice">Look at the big screen to find your lantern!</div>
+  <button class="save-btn-full" id="saveBtn" onclick="saveImage()">Save Image</button>
+  <button class="reset-btn" id="resetBtn" onclick="resetForm()">Make Another Wish</button>
+</div>
+
+<script>
+// ========== i18n ==========
+const I18N = {
+  en: {
+    title: 'Cyber Sky Lantern',
+    subtitle: 'AI lights a sky lantern for your wish',
+    labelTheme: 'Choose a theme',
+    labelWish: 'Write your wish',
+    labelName: 'Sign your name <span style="font-weight:300;color:rgba(255,179,71,0.4)">(optional)</span>',
+    wishPlaceholder: 'Write your wish here...',
+    namePlaceholder: 'Your name or initials',
+    submitBtn: 'Release Lantern',
+    loadingText: 'Lighting a sky lantern for your wish...',
+    luckyBadge: 'Lucky! You got a Golden Koi Lantern!',
+    resetBtn: 'Make Another Wish',
+    watchNotice: 'Look at the big screen to find your lantern!',
+    saveBtn: 'Save Image',
+    resultOriginal: (t) => `Original: ${t}`,
+    resultCounter: (n) => `You are wisher #${n} tonight`,
+    resultSignedBy: (name) => `- ${name}`,
+    networkError: 'Network error, please try again',
+    themes: {
+      'Love':    { icon: '/static/images/theme-love.jpg', label: 'Love',    example: 'May we be together forever' },
+      'Career':  { icon: '/static/images/theme-career.jpg', label: 'Career',  example: 'Dream job, here I come' },
+      'Health':  { icon: '/static/images/theme-health.jpg', label: 'Health',  example: 'Health and happiness for all' },
+      'Studies': { icon: '/static/images/theme-studies.jpg', label: 'Studies', example: 'Ace every exam!' },
+      'Fortune': { icon: '/static/images/theme-fortune.jpg', label: 'Fortune', example: 'Abundance and prosperity' },
+      'Joy':     { icon: '/static/images/theme-joy.jpg', label: 'Joy',     example: 'More laughter, less worry' },
+    },
+  },
+  zh: {
+    title: '赛博点天灯',
+    subtitle: 'AI 为你的心愿点亮一盏天灯',
+    labelTheme: '选择心愿主题',
+    labelWish: '写下你的心愿',
+    labelName: '署名 <span style="font-weight:300;color:rgba(255,179,71,0.4)">(选填)</span>',
+    wishPlaceholder: '写下你的心愿...',
+    namePlaceholder: '你的名字或昵称',
+    submitBtn: '放天灯',
+    loadingText: '正在为您的心愿点亮天灯...',
+    luckyBadge: '恭喜触发金色锦鲤天灯！',
+    resetBtn: '再许一个愿',
+    watchNotice: '请看大屏幕，找到你的天灯!',
+    saveBtn: '保存图片',
+    resultOriginal: (t) => `原始心愿: ${t}`,
+    resultCounter: (n) => `你是今晚第 ${n} 位许愿人`,
+    resultSignedBy: (name) => `- ${name}`,
+    networkError: '网络异常，请重试',
+    themes: {
+      'Love':    { icon: '/static/images/theme-love.jpg', label: '爱情', example: '愿我们一直在一起' },
+      'Career':  { icon: '/static/images/theme-career.jpg', label: '事业', example: '早日不用打工' },
+      'Health':  { icon: '/static/images/theme-health.jpg', label: '健康', example: '愿家人平安健康' },
+      'Studies': { icon: '/static/images/theme-studies.jpg', label: '考试', example: '上岸！上岸！上岸！' },
+      'Fortune': { icon: '/static/images/theme-fortune.jpg', label: '财运', example: '发财！来一个亿' },
+      'Joy':     { icon: '/static/images/theme-joy.jpg', label: '搞笑', example: '希望明天不上班' },
+    },
+  },
+  th: {
+    title: 'โคมลอยไซเบอร์',
+    subtitle: 'AI จุดโคมลอยให้คำอธิษฐานของคุณ',
+    labelTheme: 'เลือกหัวข้อ',
+    labelWish: 'เขียนคำอธิษฐาน',
+    labelName: 'ลงชื่อ <span style="font-weight:300;color:rgba(255,179,71,0.4)">(ไม่บังคับ)</span>',
+    wishPlaceholder: 'เขียนคำอธิษฐานของคุณที่นี่...',
+    namePlaceholder: 'ชื่อหรือชื่อเล่นของคุณ',
+    submitBtn: 'ปล่อยโคมลอย',
+    loadingText: 'กำลังจุดโคมลอยให้คำอธิษฐานของคุณ...',
+    luckyBadge: 'โชคดี! คุณได้โคมปลาคาร์ฟทอง!',
+    resetBtn: 'อธิษฐานอีกครั้ง',
+    watchNotice: 'ดูที่จอใหญ่เพื่อชมโคมลอยของคุณ!',
+    saveBtn: 'บันทึกภาพ',
+    resultOriginal: (t) => `คำอธิษฐาน: ${t}`,
+    resultCounter: (n) => `คุณเป็นผู้อธิษฐานคนที่ ${n} ของคืนนี้`,
+    resultSignedBy: (name) => `- ${name}`,
+    networkError: 'เครือข่ายผิดพลาด กรุณาลองใหม่',
+    themes: {
+      'Love':    { icon: '/static/images/theme-love.jpg', label: 'ความรัก',  example: 'ขอให้เราอยู่ด้วยกันตลอดไป' },
+      'Career':  { icon: '/static/images/theme-career.jpg', label: 'การงาน',  example: 'ขอให้ได้งานในฝัน' },
+      'Health':  { icon: '/static/images/theme-health.jpg', label: 'สุขภาพ',  example: 'ขอให้ครอบครัวสุขภาพดี' },
+      'Studies': { icon: '/static/images/theme-studies.jpg', label: 'การเรียน', example: 'ขอให้สอบผ่านทุกวิชา' },
+      'Fortune': { icon: '/static/images/theme-fortune.jpg', label: 'โชคลาภ',  example: 'ขอให้ร่ำรวยมั่งมี' },
+      'Joy':     { icon: '/static/images/theme-joy.jpg', label: 'ความสุข',  example: 'ขอให้มีความสุขทุกวัน' },
+    },
+  },
+};
+
+// Theme key -> server key mapping
+const THEME_SERVER_KEY = {
+  'Love': '爱情', 'Career': '事业', 'Health': '健康',
+  'Studies': '考试', 'Fortune': '财运', 'Joy': '搞笑',
+};
+
+const API = window.location.origin;
+let currentLang = 'en';
+let selectedTheme = null;
+
+function t() { return I18N[currentLang]; }
+
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById('langEn').classList.toggle('active', lang === 'en');
+  document.getElementById('langTh').classList.toggle('active', lang === 'th');
+  document.getElementById('langZh').classList.toggle('active', lang === 'zh');
+  applyLang();
+}
+
+function applyLang() {
+  const s = t();
+  document.getElementById('pageTitle').textContent = s.title;
+  document.getElementById('pageSubtitle').textContent = s.subtitle;
+  document.getElementById('labelTheme').textContent = s.labelTheme;
+  document.getElementById('labelWish').textContent = s.labelWish;
+  document.getElementById('labelName').innerHTML = s.labelName;
+  document.getElementById('wishInput').placeholder = selectedTheme ? s.themes[selectedTheme].example : s.wishPlaceholder;
+  document.getElementById('nameInput').placeholder = s.namePlaceholder;
+  document.getElementById('submitBtn').textContent = s.submitBtn;
+  document.getElementById('loadingText').textContent = s.loadingText;
+  document.getElementById('luckyBadge').textContent = s.luckyBadge;
+  document.getElementById('resetBtn').textContent = s.resetBtn;
+  document.getElementById('watchNotice').textContent = s.watchNotice;
+  document.getElementById('saveBtn').textContent = s.saveBtn;
+
+  // Re-render theme buttons with current language labels
+  renderThemes();
+}
+
+function renderThemes() {
+  const themesEl = document.getElementById('themes');
+  themesEl.innerHTML = '';
+  const themeData = t().themes;
+  Object.entries(themeData).forEach(([key, info]) => {
+    const btn = document.createElement('button');
+    btn.className = 'theme-btn';
+    if (key === selectedTheme) btn.classList.add('selected');
+    btn.innerHTML = `<img class="theme-icon" src="${info.icon}" alt="${info.label}"><span>${info.label}</span>`;
+    btn.onclick = () => selectTheme(key, btn);
+    themesEl.appendChild(btn);
+  });
+}
+
+function selectTheme(key, btn) {
+  selectedTheme = key;
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('wishInput').placeholder = t().themes[key].example;
+  updateSubmitState();
+}
+
+const wishInput = document.getElementById('wishInput');
+const charCount = document.getElementById('charCount');
+const submitBtn = document.getElementById('submitBtn');
+
+wishInput.addEventListener('input', () => {
+  charCount.textContent = wishInput.value.length;
+  updateSubmitState();
+});
+
+function updateSubmitState() {
+  submitBtn.disabled = !selectedTheme || !wishInput.value.trim();
+}
+
+submitBtn.addEventListener('click', submitWish);
+
+async function submitWish() {
+  const text = wishInput.value.trim();
+  if (!text || !selectedTheme) return;
+  const name = document.getElementById('nameInput').value.trim();
+
+  document.getElementById('formSection').classList.add('hidden');
+  document.getElementById('loading').classList.add('active');
+
+  try {
+    const resp = await fetch(`${API}/api/wish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wish: text,
+        theme: THEME_SERVER_KEY[selectedTheme],
+        name: name || '',
+      }),
+    });
+    const data = await resp.json();
+    if (data.error) {
+      alert(data.error);
+      resetForm();
+      return;
+    }
+    showResult(data);
+  } catch (err) {
+    alert(t().networkError);
+    resetForm();
+  }
+}
+
+function showResult(data) {
+  const s = t();
+  document.getElementById('loading').classList.remove('active');
+
+  // Show theme icon instead of Pillow image
+  const themeKey = Object.keys(s.themes).find(k =>
+    THEME_SERVER_KEY[k] === data.theme) || Object.keys(s.themes)[0];
+  const iconUrl = s.themes[themeKey].icon;
+  document.getElementById('resultLanternIcon').innerHTML =
+    `<img src="${iconUrl}" alt="${themeKey}">`;
+
+  document.getElementById('resultText').textContent = data.beautified;
+  document.getElementById('resultOriginal').textContent = s.resultOriginal(data.original);
+  document.getElementById('counterInfo').textContent = s.resultCounter(data.counter);
+  document.getElementById('luckyBadge').classList.toggle('active', data.is_lucky);
+
+  const nameEl = document.getElementById('resultName');
+  if (data.name) {
+    nameEl.textContent = s.resultSignedBy(data.name);
+    nameEl.style.display = '';
+  } else {
+    nameEl.style.display = 'none';
+  }
+
+  // Store image data for save/print
+  window._lastImageB64 = data.image_b64;
+  window._lastWishText = data.beautified;
+  window._lastWishName = data.name || '';
+
+  document.getElementById('result').classList.add('active');
+}
+
+function saveImage() {
+  if (!window._lastImageB64) return;
+  const cw = 750, ch = 1000;
+  const cv = document.createElement('canvas');
+  cv.width = cw; cv.height = ch;
+  const c = cv.getContext('2d');
+
+  // Background gradient
+  const bg = c.createLinearGradient(0, 0, 0, ch);
+  bg.addColorStop(0, '#020308');
+  bg.addColorStop(0.4, '#0A0E1C');
+  bg.addColorStop(1, '#12100a');
+  c.fillStyle = bg;
+  c.fillRect(0, 0, cw, ch);
+
+  // Stars
+  for (let i = 0; i < 80; i++) {
+    const sx = Math.random() * cw, sy = Math.random() * ch * 0.6;
+    c.beginPath();
+    c.arc(sx, sy, Math.random() * 1.2 + 0.3, 0, Math.PI * 2);
+    c.fillStyle = `rgba(255, 220, 140, ${Math.random() * 0.3 + 0.05})`;
+    c.fill();
+  }
+
+  // Background lantern dots
+  for (let i = 0; i < 25; i++) {
+    const lx = Math.random() * cw, ly = 60 + Math.random() * ch * 0.5;
+    const lr = 2 + Math.random() * 4;
+    const glow = c.createRadialGradient(lx, ly, 0, lx, ly, lr * 5);
+    glow.addColorStop(0, `rgba(255, 190, 80, ${0.08 + Math.random() * 0.08})`);
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = glow;
+    c.fillRect(lx - lr * 5, ly - lr * 5, lr * 10, lr * 10);
+    c.beginPath();
+    c.arc(lx, ly, lr, 0, Math.PI * 2);
+    c.fillStyle = `rgba(255, 200, 100, ${0.15 + Math.random() * 0.2})`;
+    c.fill();
+  }
+
+  // Central lantern glow
+  const cx = cw / 2, cy = 300;
+  // Wide glow
+  const g1 = c.createRadialGradient(cx, cy, 0, cx, cy, 200);
+  g1.addColorStop(0, 'rgba(255, 200, 60, 0.18)');
+  g1.addColorStop(0.4, 'rgba(255, 160, 40, 0.06)');
+  g1.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g1;
+  c.fillRect(cx - 200, cy - 200, 400, 400);
+  // Inner glow
+  const g2 = c.createRadialGradient(cx, cy, 0, cx, cy, 90);
+  g2.addColorStop(0, 'rgba(255, 230, 120, 0.35)');
+  g2.addColorStop(0.4, 'rgba(255, 190, 70, 0.15)');
+  g2.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = g2;
+  c.fillRect(cx - 90, cy - 90, 180, 180);
+  // Lantern body
+  c.beginPath();
+  c.ellipse(cx, cy, 42, 56, 0, 0, Math.PI * 2);
+  const bodyG = c.createRadialGradient(cx, cy - 15, 8, cx, cy + 10, 55);
+  bodyG.addColorStop(0, 'rgba(255, 245, 200, 0.92)');
+  bodyG.addColorStop(0.3, 'rgba(255, 210, 100, 0.82)');
+  bodyG.addColorStop(0.7, 'rgba(240, 170, 50, 0.65)');
+  bodyG.addColorStop(1, 'rgba(200, 130, 20, 0.45)');
+  c.fillStyle = bodyG;
+  c.fill();
+  // Bloom
+  c.beginPath();
+  c.ellipse(cx, cy - 12, 18, 12, 0, 0, Math.PI * 2);
+  c.fillStyle = 'rgba(255, 250, 230, 0.15)';
+  c.fill();
+  // Flame
+  const fg = c.createRadialGradient(cx, cy + 52, 0, cx, cy + 52, 14);
+  fg.addColorStop(0, 'rgba(255, 215, 100, 0.4)');
+  fg.addColorStop(0.5, 'rgba(255, 170, 55, 0.15)');
+  fg.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = fg;
+  c.fillRect(cx - 14, cy + 40, 28, 24);
+
+  // Title
+  c.textAlign = 'center';
+  c.fillStyle = 'rgba(255, 215, 0, 0.2)';
+  c.font = '300 18px -apple-system, sans-serif';
+  c.letterSpacing = '4px';
+  c.fillText('CYBER SKY LANTERN', cx, 50);
+
+  // Ground glow
+  const gg = c.createRadialGradient(cx, ch, 0, cx, ch, ch * 0.4);
+  gg.addColorStop(0, 'rgba(255, 120, 20, 0.12)');
+  gg.addColorStop(0.5, 'rgba(200, 60, 5, 0.04)');
+  gg.addColorStop(1, 'rgba(0,0,0,0)');
+  c.fillStyle = gg;
+  c.fillRect(0, ch * 0.6, cw, ch * 0.4);
+
+  // Wish text
+  c.fillStyle = '#FFD700';
+  c.font = '500 28px -apple-system, "PingFang SC", sans-serif';
+  c.shadowColor = 'rgba(255, 179, 71, 0.4)';
+  c.shadowBlur = 15;
+
+  // Word wrap
+  const maxW = cw * 0.75;
+  const words = window._lastWishText.split('');
+  let lines = [], line = '';
+  for (const ch2 of words) {
+    if (c.measureText(line + ch2).width > maxW && line) {
+      lines.push(line); line = ch2;
+    } else { line += ch2; }
+  }
+  if (line) lines.push(line);
+  if (lines.length > 3) lines.length = 3;
+
+  const textY = 520;
+  lines.forEach((l, i) => c.fillText(l, cx, textY + i * 40));
+  c.shadowBlur = 0;
+
+  // Name
+  if (window._lastWishName) {
+    c.fillStyle = 'rgba(255, 200, 120, 0.6)';
+    c.font = 'italic 400 20px -apple-system, "PingFang SC", sans-serif';
+    c.fillText('— ' + window._lastWishName, cx, textY + lines.length * 40 + 20);
+  }
+
+  // Footer
+  c.fillStyle = 'rgba(255, 179, 71, 0.2)';
+  c.font = '300 14px -apple-system, sans-serif';
+  c.fillText('Yi Peng Festival 2026', cx, ch - 40);
+
+  // Download
+  const a = document.createElement('a');
+  a.href = cv.toDataURL('image/jpeg', 0.92);
+  a.download = 'cyber-sky-lantern.jpg';
+  a.click();
+}
+
+function resetForm() {
+  selectedTheme = null;
+  wishInput.value = '';
+  wishInput.placeholder = t().wishPlaceholder;
+  charCount.textContent = '0';
+  submitBtn.disabled = true;
+  renderThemes();
+  document.getElementById('formSection').classList.remove('hidden');
+  document.getElementById('loading').classList.remove('active');
+  document.getElementById('result').classList.remove('active');
+}
+
+// Initial render
+renderThemes();
+</script>
+</body>
+</html>

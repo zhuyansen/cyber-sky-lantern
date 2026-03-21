@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Table Tent Card A5</title>
+<style>
+  @page { size: A5 landscape; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 210mm; height: 148mm;
+    background: linear-gradient(160deg, #020308, #0A0E1C 50%, #0e0a06);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+    display: flex; color: #FFF8E6; overflow: hidden;
+    position: relative; padding: 16mm 20mm;
+  }
+  /* Warm lantern dots */
+  body::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(2px 2px at 6% 10%, rgba(255,180,60,0.3), transparent 4px),
+      radial-gradient(1.5px 1.5px at 20% 6%, rgba(255,200,90,0.2), transparent 3px),
+      radial-gradient(2px 2px at 45% 4%, rgba(255,165,50,0.25), transparent 4px),
+      radial-gradient(1.5px 1.5px at 75% 12%, rgba(255,195,80,0.2), transparent 3px),
+      radial-gradient(2px 2px at 90% 8%, rgba(255,210,100,0.25), transparent 4px),
+      radial-gradient(1.5px 1.5px at 12% 88%, rgba(255,170,55,0.2), transparent 3px),
+      radial-gradient(2px 2px at 82% 85%, rgba(255,185,65,0.2), transparent 4px);
+    pointer-events: none;
+  }
+  /* Warm ground glow */
+  body::after {
+    content: '';
+    position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%);
+    width: 400px; height: 150px;
+    background: radial-gradient(ellipse, rgba(255,130,25,0.08), transparent 70%);
+    pointer-events: none;
+  }
+  .left {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+    position: relative; z-index: 1; padding-right: 16mm;
+  }
+  .right {
+    width: 55mm; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative; z-index: 1;
+  }
+  .title {
+    font-size: 28px; color: #FFE18C; font-weight: 700;
+    text-shadow: 0 0 25px rgba(255,160,50,0.35), 0 2px 3px rgba(0,0,0,0.5);
+    margin-bottom: 4mm; letter-spacing: 1px;
+  }
+  .desc {
+    font-size: 13px; color: rgba(255,248,230,0.55); line-height: 1.7; margin-bottom: 6mm;
+  }
+  .desc-zh {
+    font-size: 12px; color: rgba(255,190,100,0.4); line-height: 1.7;
+  }
+  .steps-mini { display: flex; gap: 4mm; margin-top: 5mm; }
+  .step-mini {
+    display: flex; align-items: center; gap: 2mm;
+    font-size: 12px; color: rgba(255,210,140,0.55);
+  }
+  .step-mini .num {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(255,160,50,0.12);
+    border: 1px solid rgba(255,179,71,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #FFB347; font-weight: 600; flex-shrink: 0;
+  }
+  .qr-box {
+    width: 46mm; height: 46mm;
+    background: rgba(2,3,8,0.8);
+    border: 2px solid rgba(255,179,71,0.3);
+    border-radius: 5mm;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 30px rgba(255,140,30,0.08);
+    margin-bottom: 4mm;
+  }
+  .qr-box img { width: 40mm; height: 40mm; }
+  .scan-text {
+    font-size: 16px; color: #FFB347; font-weight: 600;
+    letter-spacing: 1px; text-shadow: 0 0 10px rgba(255,160,50,0.25);
+  }
+  .scan-sub { font-size: 10px; color: rgba(255,190,100,0.35); margin-top: 2mm; text-align: center; }
+  .wifi-tiny {
+    font-size: 9px; color: rgba(255,190,100,0.3);
+    margin-top: 3mm; font-family: monospace; text-align: center; line-height: 1.5;
+  }
+  .divider-v {
+    width: 1px; height: 80%;
+    background: linear-gradient(180deg, transparent, rgba(255,179,71,0.18), transparent);
+    align-self: center; margin: 0 4mm; position: relative; z-index: 1;
+  }
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="title">&#x2728; Cyber Sky Lantern</div>
+    <div class="desc">
+      Write a wish on your phone, and AI will light a digital sky lantern for you.
+      Watch your lantern float into the starry sky on the big screen!
+    </div>
+    <div class="desc-zh">
+      在手机上写下心愿，AI 为你点亮一盏赛博天灯，飞上星空大屏
+    </div>
+    <div class="steps-mini">
+      <div class="step-mini"><span class="num">1</span> Scan QR</div>
+      <div class="step-mini"><span class="num">2</span> Write wish</div>
+      <div class="step-mini"><span class="num">3</span> Watch it fly!</div>
+    </div>
+  </div>
+  <div class="divider-v"></div>
+  <div class="right">
+    <div class="qr-box">
+      <img src="qr-code.png" alt="QR">
+    </div>
+    <div class="scan-text">Scan Me</div>
+    <div class="scan-sub">Open camera to scan</div>
+    <div class="wifi-tiny">
+      WiFi: CyberLantern_5G<br>
+      Pass: lantern2026
+    </div>
+  </div>
+</body>
+</html>
