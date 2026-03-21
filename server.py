@@ -265,7 +265,7 @@ async def disconnect(sid):
 app = socketio.ASGIApp(sio, other_asgi_app=api)
 
 if __name__ == "__main__":
-    port = CONFIG["server"]["port"]
+    port = int(os.environ.get("PORT", CONFIG["server"]["port"]))
     host = CONFIG["server"]["host"]
     logger.info(f"赛博点天灯启动: http://{host}:{port}")
     logger.info(f"手机许愿页: http://localhost:{port}/wish")
