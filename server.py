@@ -279,8 +279,18 @@ async def display_screenshot(sid, data):
 @api.get("/api/debug")
 async def debug_info():
     """调试：查看连接状态"""
-    connected = list(sio.manager.get_participants('/', None))
-    return {"connected_clients": len(connected), "sids": [str(s) for s in connected[:10]]}
+    try:
+        rooms = sio.manager.rooms.get('/', {})
+        all_sids = list(rooms.get(None, set()))
+    except Exception:
+        all_sids = []
+    return {
+        "connected_clients": len(all_sids),
+        "sids": all_sids[:10],
+        "wish_counter": wish_counter,
+        "recent_wishes_count": len(recent_wishes),
+        "pending_screenshots": len(screenshot_futures),
+    }
 
 
 @api.get("/api/screenshot")
@@ -291,18 +301,22 @@ async def get_screenshot():
     future = loop.create_future()
     screenshot_futures[req_id] = future
 
-    # 通知大屏截图
+    # 通知所有大屏截图
+    logger.info(f"请求截图: {req_id}, 等待大屏回传...")
     await sio.emit("take_screenshot", {"request_id": req_id})
 
     try:
         image = await asyncio.wait_for(future, timeout=8.0)
         del screenshot_futures[req_id]
         if image:
+            logger.info(f"截图成功: {req_id}, {len(image)} chars")
             return JSONResponse({"image": image})
+        logger.warning(f"截图为空: {req_id}")
         return JSONResponse({"image": ""}, status_code=500)
     except asyncio.TimeoutError:
         screenshot_futures.pop(req_id, None)
-        return JSONResponse({"image": ""}, status_code=504)
+        logger.warning(f"截图超时: {req_id}, 大屏未回传")
+        return JSONResponse({"image": "", "error": "Display page not responding. Make sure display page is open."}, status_code=504)
 
 
 # --- 启动 ---
