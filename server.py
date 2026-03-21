@@ -276,6 +276,13 @@ async def display_screenshot(sid, data):
         logger.info(f"收到大屏截图: {req_id} ({len(image)} chars)")
 
 
+@api.get("/api/debug")
+async def debug_info():
+    """调试：查看连接状态"""
+    connected = list(sio.manager.get_participants('/', None))
+    return {"connected_clients": len(connected), "sids": [str(s) for s in connected[:10]]}
+
+
 @api.get("/api/screenshot")
 async def get_screenshot():
     """手机请求实时截图：通知大屏截图，等待回传"""

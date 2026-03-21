@@ -819,7 +819,7 @@ function render() {
 render();
 
 // ========== Socket.IO ==========
-const socket = io();
+const socket = io({ transports: ['websocket', 'polling'] });
 
 socket.on('connect', () => {
   document.getElementById('status').textContent = 'connected';
