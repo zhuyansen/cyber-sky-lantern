@@ -77,7 +77,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 # --- Socket.IO ---
-sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
+sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*", max_http_buffer_size=10 * 1024 * 1024)  # 10MB for screenshots
 
 # --- FastAPI ---
 api = FastAPI(title="赛博点天灯")
