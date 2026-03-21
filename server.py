@@ -261,6 +261,33 @@ async def disconnect(sid):
     logger.info(f"大屏断开: {sid}")
 
 
+# 大屏截图缓存（wish_id -> base64 JPEG）
+display_screenshots = {}
+
+
+@sio.event
+async def display_screenshot(sid, data):
+    """大屏发送截图给服务端"""
+    wish_id = data.get("wish_id", "")
+    image = data.get("image", "")
+    if wish_id and image:
+        display_screenshots[wish_id] = image
+        logger.info(f"收到大屏截图: {wish_id} ({len(image)} chars)")
+        # 只保留最近 20 张
+        if len(display_screenshots) > 20:
+            oldest = next(iter(display_screenshots))
+            del display_screenshots[oldest]
+
+
+@api.get("/api/screenshot/{wish_id}")
+async def get_screenshot(wish_id: str):
+    """手机端获取大屏截图"""
+    image = display_screenshots.get(wish_id)
+    if image:
+        return JSONResponse({"image": image})
+    return JSONResponse({"image": ""}, status_code=404)
+
+
 # --- 启动 ---
 app = socketio.ASGIApp(sio, other_asgi_app=api)
 

@@ -406,6 +406,7 @@ const I18N = {
     resetBtn: 'Make Another Wish',
     watchNotice: 'Look at the big screen to find your lantern!',
     saveBtn: 'Save Image',
+    saveRetry: 'Try again in a moment',
     resultOriginal: (t) => `Original: ${t}`,
     resultCounter: (n) => `You are wisher #${n} tonight`,
     resultSignedBy: (name) => `- ${name}`,
@@ -433,6 +434,7 @@ const I18N = {
     resetBtn: '再许一个愿',
     watchNotice: '请看大屏幕，找到你的天灯!',
     saveBtn: '保存图片',
+    saveRetry: '稍后再试',
     resultOriginal: (t) => `原始心愿: ${t}`,
     resultCounter: (n) => `你是今晚第 ${n} 位许愿人`,
     resultSignedBy: (name) => `- ${name}`,
@@ -460,6 +462,7 @@ const I18N = {
     resetBtn: 'อธิษฐานอีกครั้ง',
     watchNotice: 'ดูที่จอใหญ่เพื่อชมโคมลอยของคุณ!',
     saveBtn: 'บันทึกภาพ',
+    saveRetry: 'ลองอีกครั้ง',
     resultOriginal: (t) => `คำอธิษฐาน: ${t}`,
     resultCounter: (n) => `คุณเป็นผู้อธิษฐานคนที่ ${n} ของคืนนี้`,
     resultSignedBy: (name) => `- ${name}`,
@@ -607,146 +610,45 @@ function showResult(data) {
     nameEl.style.display = 'none';
   }
 
-  // Store image data for save/print
-  window._lastImageB64 = data.image_b64;
+  // Store data for save
+  window._lastWishId = data.wish_id;
   window._lastWishText = data.beautified;
   window._lastWishName = data.name || '';
 
   document.getElementById('result').classList.add('active');
 }
 
-function saveImage() {
-  if (!window._lastImageB64) return;
-  const cw = 750, ch = 1000;
-  const cv = document.createElement('canvas');
-  cv.width = cw; cv.height = ch;
-  const c = cv.getContext('2d');
+async function saveImage() {
+  const wishId = window._lastWishId;
+  if (!wishId) return;
 
-  // Background gradient
-  const bg = c.createLinearGradient(0, 0, 0, ch);
-  bg.addColorStop(0, '#020308');
-  bg.addColorStop(0.4, '#0A0E1C');
-  bg.addColorStop(1, '#12100a');
-  c.fillStyle = bg;
-  c.fillRect(0, 0, cw, ch);
+  const btn = document.getElementById('saveBtn');
+  const origText = btn.textContent;
+  btn.textContent = '...';
+  btn.disabled = true;
 
-  // Stars
-  for (let i = 0; i < 80; i++) {
-    const sx = Math.random() * cw, sy = Math.random() * ch * 0.6;
-    c.beginPath();
-    c.arc(sx, sy, Math.random() * 1.2 + 0.3, 0, Math.PI * 2);
-    c.fillStyle = `rgba(255, 220, 140, ${Math.random() * 0.3 + 0.05})`;
-    c.fill();
+  try {
+    // 从服务端获取大屏截图
+    const resp = await fetch(`/api/screenshot/${wishId}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.image) {
+        const a = document.createElement('a');
+        a.href = data.image;
+        a.download = 'cyber-sky-lantern.jpg';
+        a.click();
+        btn.textContent = origText;
+        btn.disabled = false;
+        return;
+      }
+    }
+    // 截图还没准备好，提示稍后重试
+    btn.textContent = t().saveRetry || 'Try again in a moment';
+    setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2000);
+  } catch (e) {
+    btn.textContent = origText;
+    btn.disabled = false;
   }
-
-  // Background lantern dots
-  for (let i = 0; i < 25; i++) {
-    const lx = Math.random() * cw, ly = 60 + Math.random() * ch * 0.5;
-    const lr = 2 + Math.random() * 4;
-    const glow = c.createRadialGradient(lx, ly, 0, lx, ly, lr * 5);
-    glow.addColorStop(0, `rgba(255, 190, 80, ${0.08 + Math.random() * 0.08})`);
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = glow;
-    c.fillRect(lx - lr * 5, ly - lr * 5, lr * 10, lr * 10);
-    c.beginPath();
-    c.arc(lx, ly, lr, 0, Math.PI * 2);
-    c.fillStyle = `rgba(255, 200, 100, ${0.15 + Math.random() * 0.2})`;
-    c.fill();
-  }
-
-  // Central lantern glow
-  const cx = cw / 2, cy = 300;
-  // Wide glow
-  const g1 = c.createRadialGradient(cx, cy, 0, cx, cy, 200);
-  g1.addColorStop(0, 'rgba(255, 200, 60, 0.18)');
-  g1.addColorStop(0.4, 'rgba(255, 160, 40, 0.06)');
-  g1.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = g1;
-  c.fillRect(cx - 200, cy - 200, 400, 400);
-  // Inner glow
-  const g2 = c.createRadialGradient(cx, cy, 0, cx, cy, 90);
-  g2.addColorStop(0, 'rgba(255, 230, 120, 0.35)');
-  g2.addColorStop(0.4, 'rgba(255, 190, 70, 0.15)');
-  g2.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = g2;
-  c.fillRect(cx - 90, cy - 90, 180, 180);
-  // Lantern body
-  c.beginPath();
-  c.ellipse(cx, cy, 42, 56, 0, 0, Math.PI * 2);
-  const bodyG = c.createRadialGradient(cx, cy - 15, 8, cx, cy + 10, 55);
-  bodyG.addColorStop(0, 'rgba(255, 245, 200, 0.92)');
-  bodyG.addColorStop(0.3, 'rgba(255, 210, 100, 0.82)');
-  bodyG.addColorStop(0.7, 'rgba(240, 170, 50, 0.65)');
-  bodyG.addColorStop(1, 'rgba(200, 130, 20, 0.45)');
-  c.fillStyle = bodyG;
-  c.fill();
-  // Bloom
-  c.beginPath();
-  c.ellipse(cx, cy - 12, 18, 12, 0, 0, Math.PI * 2);
-  c.fillStyle = 'rgba(255, 250, 230, 0.15)';
-  c.fill();
-  // Flame
-  const fg = c.createRadialGradient(cx, cy + 52, 0, cx, cy + 52, 14);
-  fg.addColorStop(0, 'rgba(255, 215, 100, 0.4)');
-  fg.addColorStop(0.5, 'rgba(255, 170, 55, 0.15)');
-  fg.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = fg;
-  c.fillRect(cx - 14, cy + 40, 28, 24);
-
-  // Title
-  c.textAlign = 'center';
-  c.fillStyle = 'rgba(255, 215, 0, 0.2)';
-  c.font = '300 18px -apple-system, sans-serif';
-  c.letterSpacing = '4px';
-  c.fillText('CYBER SKY LANTERN', cx, 50);
-
-  // Ground glow
-  const gg = c.createRadialGradient(cx, ch, 0, cx, ch, ch * 0.4);
-  gg.addColorStop(0, 'rgba(255, 120, 20, 0.12)');
-  gg.addColorStop(0.5, 'rgba(200, 60, 5, 0.04)');
-  gg.addColorStop(1, 'rgba(0,0,0,0)');
-  c.fillStyle = gg;
-  c.fillRect(0, ch * 0.6, cw, ch * 0.4);
-
-  // Wish text
-  c.fillStyle = '#FFD700';
-  c.font = '500 28px -apple-system, "PingFang SC", sans-serif';
-  c.shadowColor = 'rgba(255, 179, 71, 0.4)';
-  c.shadowBlur = 15;
-
-  // Word wrap
-  const maxW = cw * 0.75;
-  const words = window._lastWishText.split('');
-  let lines = [], line = '';
-  for (const ch2 of words) {
-    if (c.measureText(line + ch2).width > maxW && line) {
-      lines.push(line); line = ch2;
-    } else { line += ch2; }
-  }
-  if (line) lines.push(line);
-  if (lines.length > 3) lines.length = 3;
-
-  const textY = 520;
-  lines.forEach((l, i) => c.fillText(l, cx, textY + i * 40));
-  c.shadowBlur = 0;
-
-  // Name
-  if (window._lastWishName) {
-    c.fillStyle = 'rgba(255, 200, 120, 0.6)';
-    c.font = 'italic 400 20px -apple-system, "PingFang SC", sans-serif';
-    c.fillText('— ' + window._lastWishName, cx, textY + lines.length * 40 + 20);
-  }
-
-  // Footer
-  c.fillStyle = 'rgba(255, 179, 71, 0.2)';
-  c.font = '300 14px -apple-system, sans-serif';
-  c.fillText('Yi Peng Festival 2026', cx, ch - 40);
-
-  // Download
-  const a = document.createElement('a');
-  a.href = cv.toDataURL('image/jpeg', 0.92);
-  a.download = 'cyber-sky-lantern.jpg';
-  a.click();
 }
 
 function resetForm() {
