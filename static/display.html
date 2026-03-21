@@ -835,13 +835,13 @@ socket.on('new_lantern', (data) => {
   addLantern(data.text, data.theme, data.emoji, data.is_lucky, data.name, data.id, true);
   updateCounter(data.counter);
   tryPlayMusic();
-  // 3 秒后截图发给服务端（等天灯升起到位）
+  // 8 秒后截图发给服务端（等天灯充分升空）
   if (data.id) {
     setTimeout(() => {
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-      console.log('Screenshot size:', Math.round(dataUrl.length / 1024), 'KB');
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      console.log('Screenshot size:', Math.round(dataUrl.length / 1024), 'KB, wish:', data.id);
       socket.emit('display_screenshot', { wish_id: data.id, image: dataUrl });
-    }, 3500);
+    }, 8000);
   }
 });
 
