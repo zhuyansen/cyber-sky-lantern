@@ -457,7 +457,7 @@ class Lantern {
       this.maxOpacity = 0.88 + Math.random() * 0.12;
     }
     this.y = H + 100;
-    this.speedY = this.isHighlighted ? 0.35 : (0.28 + Math.random() * 0.48);
+    this.speedY = this.isHighlighted ? 0.5 : (0.4 + Math.random() * 0.6);
     this.swayAmp = this.isHighlighted ? 3 : (5 + Math.random() * 14);
     this.swayFreq = 0.0008 + Math.random() * 0.003;
     this.swayOffset = Math.random() * Math.PI * 2;
@@ -746,7 +746,7 @@ class Lantern {
   }
 }
 
-function addLantern(text, theme, emoji, isLucky, name, wishId, isRealtime) {
+function addLantern(text, theme, emoji, isLucky, name, wishId, isRealtime, instant) {
   // Limit simultaneous highlights
   if (isRealtime) {
     const activeHighlights = lanterns.filter(l => l.isHighlighted).length;
@@ -761,7 +761,14 @@ function addLantern(text, theme, emoji, isLucky, name, wishId, isRealtime) {
     if (oldest) oldest.state = 'fading';
     else break;
   }
-  lanterns.push(new Lantern(text, theme, emoji, isLucky, name, wishId, isRealtime));
+  const l = new Lantern(text, theme, emoji, isLucky, name, wishId, isRealtime);
+  if (instant) {
+    // Skip rise animation - place directly at target
+    l.y = l.targetY;
+    l.opacity = l.maxOpacity;
+    l.state = 'floating';
+  }
+  lanterns.push(l);
   lastActivity = Date.now();
 }
 
@@ -847,7 +854,7 @@ socket.on('recent_wishes', (wishes) => {
   const existing = lanterns.filter(l => l.wishId).map(l => l.wishId);
   for (const w of wishes) {
     if (!existing.includes(w.id)) {
-      addLantern(w.text, w.theme, w.emoji, w.is_lucky, w.name, w.id);
+      addLantern(w.text, w.theme, w.emoji, w.is_lucky, w.name, w.id, false, true);
     }
   }
 });
@@ -865,16 +872,14 @@ setInterval(() => {
   }
 }, 1800);
 
-// Initial burst: fill the sky with lanterns
+// Initial burst: instantly fill the sky with lanterns (no rise animation)
 setTimeout(() => {
   const needed = Math.max(0, MIN_VISIBLE - lanterns.length);
   for (let i = 0; i < needed; i++) {
-    setTimeout(() => {
-      const demo = DEMO_WISHES[i % DEMO_WISHES.length];
-      addLantern(demo.text, demo.theme, demo.emoji, false);
-    }, i * 400);
+    const demo = DEMO_WISHES[i % DEMO_WISHES.length];
+    addLantern(demo.text, demo.theme, demo.emoji, false, '', '', false, true);
   }
-}, 800);
+}, 200);
 
 // ========== Start Overlay + Music ==========
 const bgMusic = document.getElementById('bgMusic');
