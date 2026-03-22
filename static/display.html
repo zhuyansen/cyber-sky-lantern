@@ -468,34 +468,20 @@ class Lantern {
     this.floatTimer = 0;
     this.maxFloatTime = 3000 + Math.random() * 3000; // ~50-100 seconds
 
-    // Theme-based color palette
-    const THEME_COLORS = {
-      'Love':    { r: 255, g: 140, b: 120 },  // Warm rose
-      'Career':  { r: 255, g: 180, b: 60  },  // Amber gold
-      'Health':  { r: 180, g: 220, b: 130 },  // Soft green
-      'Studies': { r: 200, g: 180, b: 255 },  // Soft purple
-      'Fortune': { r: 255, g: 215, b: 50  },  // Gold
-      'Joy':     { r: 255, g: 200, b: 100 },  // Warm yellow
-      '爱情':    { r: 255, g: 140, b: 120 },
-      '事业':    { r: 255, g: 180, b: 60  },
-      '健康':    { r: 180, g: 220, b: 130 },
-      '考试':    { r: 200, g: 180, b: 255 },
-      '财运':    { r: 255, g: 215, b: 50  },
-      '搞笑':    { r: 255, g: 200, b: 100 },
-    };
-    const tc = THEME_COLORS[this.theme];
+    // Warm color palette (amber/gold/white variations)
+    const w = Math.random();
     if (this.isHighlighted) {
-      this.cr = 255; this.cg = 245; this.cb = 200;
+      this.cr = 255; this.cg = 240; this.cb = 180;
     } else if (this.isLucky) {
       this.cr = 255; this.cg = 225; this.cb = 60;
-    } else if (tc) {
-      // Theme color with slight variation
-      this.cr = Math.min(255, tc.r + Math.random() * 20 - 10);
-      this.cg = Math.min(255, tc.g + Math.random() * 20 - 10);
-      this.cb = Math.min(255, tc.b + Math.random() * 20 - 10);
+    } else if (w < 0.2) {
+      this.cr = 255; this.cg = 150 + Math.random() * 20; this.cb = 25 + Math.random() * 20;
+    } else if (w < 0.5) {
+      this.cr = 255; this.cg = 175 + Math.random() * 25; this.cb = 45 + Math.random() * 25;
+    } else if (w < 0.75) {
+      this.cr = 255; this.cg = 200 + Math.random() * 20; this.cb = 70 + Math.random() * 30;
     } else {
-      // Default warm amber
-      this.cr = 255; this.cg = 180 + Math.random() * 30; this.cb = 50 + Math.random() * 40;
+      this.cr = 255; this.cg = 220 + Math.random() * 15; this.cb = 110 + Math.random() * 30;
     }
 
     // Lucky particles
