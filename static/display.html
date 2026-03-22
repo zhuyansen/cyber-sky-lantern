@@ -126,6 +126,25 @@ const DEMO_WISHES = [
   { text: 'ขอให้เราอยู่ด้วยกันตลอดไป', theme: 'Love' },
 ];
 
+// ========== Preload Theme Images ==========
+const THEME_IMAGES = {};
+const THEME_KEYS = ['love', 'career', 'health', 'studies', 'fortune', 'joy'];
+const THEME_MAP = {
+  'Love': 'love', '爱情': 'love', 'ความรัก': 'love',
+  'Career': 'career', '事业': 'career', 'การงาน': 'career',
+  'Health': 'health', '健康': 'health', 'สุขภาพ': 'health',
+  'Studies': 'studies', '考试': 'studies', 'การเรียน': 'studies',
+  'Fortune': 'fortune', '财运': 'fortune', 'โชคลาภ': 'fortune',
+  'Joy': 'joy', '搞笑': 'joy', 'ความสุข': 'joy',
+};
+let themeImagesLoaded = 0;
+THEME_KEYS.forEach(key => {
+  const img = new Image();
+  img.onload = () => { themeImagesLoaded++; };
+  img.src = `/static/images/theme-${key}.jpg`;
+  THEME_IMAGES[key] = img;
+});
+
 // ========== Canvas ==========
 const canvas = document.getElementById('sky');
 const ctx = canvas.getContext('2d');
@@ -553,87 +572,40 @@ class Lantern {
     ctx.save();
     ctx.globalAlpha = this.opacity;
 
+    // ──── Resolve theme image ────
+    const themeKey = THEME_MAP[this.theme] || 'love';
+    const themeImg = THEME_IMAGES[themeKey];
+    const imgSize = 80 * s;  // image display size
+    const bOffY = -2 * s;
+
     // ──── Layer 1: Wide atmospheric glow ────
-    const a1R = (170 + 25 * Math.sin(this.time * 0.006)) * s;
+    const a1R = (140 + 20 * Math.sin(this.time * 0.006)) * s;
     const a1 = ctx.createRadialGradient(x, y, 0, x, y, a1R);
-    a1.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0.07)`);
-    a1.addColorStop(0.3, `rgba(${cr}, ${Math.max(0, cg - 30)}, ${Math.max(0, cb - 20)}, 0.025)`);
-    a1.addColorStop(0.7, `rgba(${cr}, ${Math.max(0, cg - 60)}, ${Math.max(0, cb - 30)}, 0.008)`);
+    a1.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0.06)`);
+    a1.addColorStop(0.4, `rgba(${cr}, ${Math.max(0, cg - 30)}, ${Math.max(0, cb - 20)}, 0.02)`);
     a1.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = a1;
     ctx.fillRect(x - a1R, y - a1R, a1R * 2, a1R * 2);
 
-    // ──── Layer 2: Inner warm glow ────
-    const a2R = (85 + 14 * Math.sin(this.time * 0.012)) * s;
-    const a2 = ctx.createRadialGradient(x, y - 4 * s, 0, x, y + 3 * s, a2R);
-    a2.addColorStop(0, `rgba(${cr}, ${Math.min(255, cg + 15)}, ${Math.min(255, cb + 25)}, 0.35)`);
-    a2.addColorStop(0.35, `rgba(${cr}, ${cg}, ${cb}, 0.14)`);
-    a2.addColorStop(0.7, `rgba(${cr}, ${Math.max(0, cg - 20)}, ${Math.max(0, cb - 15)}, 0.04)`);
-    a2.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = a2;
-    ctx.fillRect(x - a2R, y - a2R, a2R * 2, a2R * 2);
-
-    // ──── Layer 3: Lantern body (soft luminous ellipse) ────
-    const bw = 25 * s;  // half-width
-    const bh = 34 * s;  // half-height
-    const bOffY = -2 * s; // slight upward offset for dome feel
-
-    // Outer soft edge (feathered)
-    ctx.beginPath();
-    ctx.ellipse(x, y + bOffY, bw + 4 * s, bh + 4 * s, 0, 0, Math.PI * 2);
-    const feather = ctx.createRadialGradient(x, y + bOffY - bh * 0.15, bw * 0.3, x, y + bOffY, bh + 4 * s);
-    feather.addColorStop(0, `rgba(${cr}, ${Math.min(255, cg + 20)}, ${Math.min(255, cb + 40)}, 0.3)`);
-    feather.addColorStop(0.5, `rgba(${cr}, ${cg}, ${cb}, 0.15)`);
-    feather.addColorStop(0.85, `rgba(${Math.max(0, cr - 30)}, ${Math.max(0, cg - 40)}, ${Math.max(0, cb - 25)}, 0.06)`);
-    feather.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = feather;
-    ctx.fill();
-
-    // Main body (slightly smaller, more opaque)
-    ctx.beginPath();
-    ctx.ellipse(x, y + bOffY, bw, bh, 0, 0, Math.PI * 2);
-    const bodyGrad = ctx.createRadialGradient(x, y + bOffY - bh * 0.25, bw * 0.15, x, y + bOffY + bh * 0.15, bh * 0.85);
-    if (this.isLucky) {
-      bodyGrad.addColorStop(0, 'rgba(255, 248, 195, 0.95)');
-      bodyGrad.addColorStop(0.3, 'rgba(255, 230, 100, 0.85)');
-      bodyGrad.addColorStop(0.65, 'rgba(245, 195, 40, 0.7)');
-      bodyGrad.addColorStop(1, 'rgba(210, 150, 15, 0.5)');
+    // ──── Layer 2: Theme image as lantern body ────
+    if (themeImg && themeImg.complete && themeImg.naturalWidth > 0) {
+      ctx.drawImage(themeImg, x - imgSize / 2, y + bOffY - imgSize / 2, imgSize, imgSize);
     } else {
-      bodyGrad.addColorStop(0, `rgba(255, ${Math.min(255, cg + 35)}, ${Math.min(255, cb + 60)}, 0.9)`);
-      bodyGrad.addColorStop(0.25, `rgba(${cr}, ${Math.min(255, cg + 10)}, ${Math.min(255, cb + 20)}, 0.78)`);
-      bodyGrad.addColorStop(0.6, `rgba(${Math.max(0, cr - 15)}, ${Math.max(0, cg - 25)}, ${Math.max(0, cb - 15)}, 0.58)`);
+      // Fallback: simple ellipse if image not loaded
+      const bw = 25 * s, bh = 34 * s;
+      ctx.beginPath();
+      ctx.ellipse(x, y + bOffY, bw, bh, 0, 0, Math.PI * 2);
+      const bodyGrad = ctx.createRadialGradient(x, y + bOffY - bh * 0.25, bw * 0.15, x, y + bOffY + bh * 0.15, bh * 0.85);
+      bodyGrad.addColorStop(0, `rgba(255, 240, 200, 0.9)`);
+      bodyGrad.addColorStop(0.5, `rgba(${cr}, ${cg}, ${cb}, 0.7)`);
       bodyGrad.addColorStop(1, `rgba(${Math.max(0, cr - 55)}, ${Math.max(0, cg - 65)}, ${Math.max(0, cb - 25)}, 0.35)`);
+      ctx.fillStyle = bodyGrad;
+      ctx.fill();
     }
-    ctx.fillStyle = bodyGrad;
-    ctx.fill();
 
-    // ──── Layer 4: Internal light bloom ────
-    ctx.beginPath();
-    ctx.ellipse(x, y + bOffY - bh * 0.12, bw * 0.5, bh * 0.3, 0, 0, Math.PI * 2);
-    const bloomAlpha = 0.12 + 0.05 * Math.sin(this.time * 0.02);
-    ctx.fillStyle = `rgba(255, 252, 240, ${bloomAlpha})`;
-    ctx.fill();
-
-    // ──── Layer 5: Bottom flame glow ────
-    const flameY = y + bOffY + bh * 0.9;
-    const fR = 16 * s;
-    const fg = ctx.createRadialGradient(x, flameY, 0, x, flameY, fR);
-    const fFlicker = 0.35 + 0.12 * Math.sin(this.time * 0.03);
-    fg.addColorStop(0, `rgba(255, 215, 100, ${fFlicker})`);
-    fg.addColorStop(0.3, `rgba(255, 170, 55, ${fFlicker * 0.4})`);
-    fg.addColorStop(0.7, `rgba(255, 130, 30, ${fFlicker * 0.1})`);
-    fg.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = fg;
-    ctx.fillRect(x - fR, flameY - fR * 0.6, fR * 2, fR * 1.4);
-
-    // Tiny bright flame core
-    ctx.beginPath();
-    ctx.arc(x, flameY - 2 * s, 2 * s, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255, 240, 180, ${fFlicker * 0.6})`;
-    ctx.fill();
-
-    // ──── Layer 6: Text BELOW lantern (floating tag) ────
-    const tagTop = y + bOffY + bh + 12 * s;
+    // ──── Layer 3: Text BELOW lantern (floating tag) ────
+    const bh = imgSize / 2;
+    const tagTop = y + bOffY + bh + 8 * s;
     const fontSize = this.isHighlighted
       ? Math.max(13, Math.round(17 * s))
       : Math.max(9, Math.round(13 * s));
@@ -660,10 +632,10 @@ class Lantern {
     // Keep max 2 lines
     if (tLines.length > 2) { tLines.length = 2; tLines[1] = tLines[1].replace(/\s*\S*$/, '…'); }
 
-    // Connecting thread
+    // Connecting thread (from bottom of image to text)
     ctx.globalAlpha = this.opacity * 0.12;
     ctx.beginPath();
-    ctx.moveTo(x, y + bOffY + bh * 0.85);
+    ctx.moveTo(x, y + bOffY + bh - 4 * s);
     ctx.lineTo(x, tagTop - 2 * s);
     ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, 0.35)`;
     ctx.lineWidth = 0.5 * s;
